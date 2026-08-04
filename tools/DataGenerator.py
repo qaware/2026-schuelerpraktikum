@@ -21,7 +21,7 @@ class SensorKey:
 class Sensor:
     """Sensor object, which stores all information of a given sensor."""
 
-    def __init__(self, name: str, type: str, pressure: float | None, temperature: float | None ):
+    def __init__(self, name: str, type: str, pressure: float | None, temperature: float | None):
         """Constructor"""
 
         self.name: str = name
@@ -80,9 +80,7 @@ class DataGenerator:
             )
     
         return sensor_data
-    
-      
-    
+
     def store_sensor_data(self,result,data: Sensor):
         content = data.__dict__
         if result == 4:
@@ -95,32 +93,25 @@ class DataGenerator:
                     file_name="/data/TM_"+datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".xml"
                 case 3:
                     file_name="/data/TM_"+datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".pdf"
-
-            
-            
         else:
             file_name = "/data/TM_"+datetime.datetime.now().strftime("%Y%m%d_%H%M%S")+".json"
-            
-
         with open(BASE_PATH + file_name, "w") as file:
             json.dump(content, file)
         self.number+=1
-    
-    
-    
 
 if __name__ == '__main__':
+
     generator = DataGenerator()
     list1=[]
+
     for i in range(1,20):
         result = np.random.choice([1,2,3,4], p=[0.6,0.1,0.1,0.2])
-        
         data = generator.generate_new_sensor_data(result)
         generator.store_sensor_data(result,data=data)
+        
         print(f"Sucessfully stored: {data}")
         list1.append(result)
         count=Counter(list1)
-            
-        time.sleep(0.1)
+        time.sleep(3)
     print(count)
   
