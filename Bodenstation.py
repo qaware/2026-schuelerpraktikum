@@ -2,6 +2,7 @@ import json
 import pathlib
 import requests
 import os
+import json
 
 from models import DataModel, UpdateDataModel
 
@@ -11,6 +12,15 @@ def clean_filename(inp): # bereinigt Dateinamen von Dateipfad und -suffix
     for i in range(len(temp_filename)):
         temp += temp_filename[i]
     return temp
+
+
+def validate_data(cont):
+    data_dict = json.loads(cont)
+    data_pairs = [[key, value] for key, value in data_dict.items()]
+    if type(data_pairs[0][1]) == type(data_pairs[1][1]) == type(data_pairs[2][1]) == str and type(data_pairs[3][1]) == type(data_pairs[4][1]) == float:
+        return True
+
+    return False
 
 
 def receive_sat_files():
@@ -23,7 +33,7 @@ def receive_sat_files():
                 with open(item, "r") as f: # öffnen zum Auslesen
                     json_content = f.readlines()[0]
                     json_content = list(json_content)
-                    
+                        
                     filename = clean_filename(str(item))
                     if not json_content[0] == "{": # TODO: bessere Validierung über Dictionary
                         print("Fehlerhafte Datei gefunden: erstes Zeichen beginnt nicht mit {")
@@ -31,8 +41,13 @@ def receive_sat_files():
                         datensatz = '{"time": "' + filename + '", '
                         for i in range(1, len(json_content)):
                             datensatz += json_content[i]
-                        input_daten.append(datensatz)
-     
+
+                        if validate_data(datensatz):
+                            input_daten.append(datensatz)
+                        else:
+                            print("Fehlerhafte Datei gefunden: Datentypen stimmen nicht")
+
+    
             else:
                 print("Fehlerhafte Datei gefunden:", str(item.suffix))
 
