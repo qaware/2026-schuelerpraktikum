@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import "./stylesheet.css";
 
 function App() {
   const [suchbegriff, setSuchbegriff] = useState('');

@@ -1,0 +1,11 @@
+.table {
+    margin: 0px auto;
+    border-collapse: collapse; 
+    width: 80%;
+
+}
+
+.border {
+    border-right: 1px solid #ccc;
+    padding: 8px;
+}

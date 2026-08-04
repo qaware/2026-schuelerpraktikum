@@ -1,3 +1,5 @@
+import "./stylesheet.css";
+
 function SensorTable() {
 
     const sensors = [
@@ -16,13 +18,13 @@ function SensorTable() {
   ];
 
     return (
-        <table>
+        <table class="table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Pressure</th>
-                    <th>Temperature</th>
+                    <th class="border" >Name</th>
+                    <th class="border" >Type</th>
+                    <th class="border" >Pressure</th>
+                    <th class="border" >Temperature</th>
                 </tr>
             </thead>
         <tbody>
@@ -31,15 +33,15 @@ function SensorTable() {
                 sensors.map(sensor => (
 
                     <tr>
-                        <td>{sensor.name}</td>
-                        <td>{sensor.type}</td>
-                        <td>{sensor.pressure}</td>
-                        <td>{sensor.temperature}</td>
+                        <td class="border">{sensor.name}</td>
+                        <td class="border">{sensor.type}</td>
+                        <td class="border">{sensor.pressure}</td>
+                        <td class="border">{sensor.temperature}</td>
                     </tr>
 
                 ))
             }
-            
+
         </tbody>
 
         </table>
