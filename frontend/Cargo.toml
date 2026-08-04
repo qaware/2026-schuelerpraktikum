@@ -1,0 +1,11 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+edition = "2021"
+description = "Schülerpraktikum Leptos CSR Frontend"
+
+[dependencies]
+leptos = { version = "0.7", features = ["csr"] }
+leptos_router = { version = "0.7" }
+console_error_panic_hook = "0.1"
+wasm-bindgen = "0.2"
