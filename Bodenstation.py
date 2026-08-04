@@ -8,9 +8,12 @@ from models import DataModel, UpdateDataModel
 # TODO: Markierung, sodass Dateien nicht doppelt gelesen werden
 # TODO: Wie gehen wir mit beschädigten oder fehlerhaften Dateien um?
 # TODO: Welche Daten sind interessant für uns?
-# TODO: Wie finden wir heraus, ob bereits Sensordaten existieren?
+# TODO: Wie finden wir heraus, ob bereits Sensordaten existieren? asdfasdf
 # TODO: Wie senden wir Dateien an die Verwaltung?
 # TODO: ...
+
+
+# EINE ÄNDERUNG
 
 if __name__ == '__main__':
     data = DataModel(name="Test")
