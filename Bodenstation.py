@@ -51,8 +51,8 @@ def receive_sat_files():
             else:
                 print("Fehlerhafte Datei gefunden:", str(item.suffix))
 
-        if str(item) != "data\Example_data.json":
-            os.remove(item)
+            if str(item) != "data\Example_data.json":
+                os.remove(item)
 
     return input_daten
 
