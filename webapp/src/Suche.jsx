@@ -14,22 +14,22 @@ const gefilterteDaten = daten.filter((item) =>
 );
   return (
     <div>
-      <input 
-        type="text" 
-        placeholder="Sensor suche..." 
-        value={suchbegriff}
-        onChange={(e) => setSuchbegriff(e.target.value)}
-      />
+        <input 
+          type="text" 
+          placeholder="Sensor suche..." 
+          value={suchbegriff}
+          onChange={(e) => setSuchbegriff(e.target.value)}
+        />
 
-      <p>Aktuelle Suche: {suchbegriff}</p>
-      <ul>
-  {gefilterteDaten.map((item) => (
-    <li key={item.id}>
-      <strong>{item.name}</strong> - Temp: {item.temperature} | Druck: {item.pressure}
-    </li>
-  ))}
-</ul>
-    </div>
+        <p>Aktuelle Suche: {suchbegriff}</p>
+        <ul>
+    {gefilterteDaten.map((item) => (
+      <li key={item.id}>
+        <strong>{item.name}</strong> - Temp: {item.temperature} | Druck: {item.pressure}
+      </li>
+    ))}
+  </ul>
+      </div>
   );
 }
 
