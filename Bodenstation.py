@@ -7,7 +7,7 @@ import json
 from models import DataModel, UpdateDataModel
 
 def clean_filename(inp): # bereinigt Dateinamen von Dateipfad und -suffix
-    temp_filename = list(inp)[5:-5]
+    temp_filename = list(inp)[8:-5]
     temp = ""
     for i in range(len(temp_filename)):
         temp += temp_filename[i]
