@@ -104,11 +104,11 @@ if __name__ == '__main__':
     generator = DataGenerator()
     list1=[]
 
-    for i in range(1,20):
+    while True:
         result = np.random.choice([1,2,3,4], p=[0.6,0.1,0.1,0.2])
         data = generator.generate_new_sensor_data(result)
         generator.store_sensor_data(result,data=data)
-        
+
         print(f"Sucessfully stored: {data}")
         list1.append(result)
         count=Counter(list1)
