@@ -37,14 +37,18 @@ class PyObjectId(ObjectId):
 
 class DataModel(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    time: str
     name: str = Field(...)
     type: str | None = None
+    pressure: float
+    temperature: float
+
 
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
         json_encoders={ObjectId: str},
-        json_schema_extra={"example": {"name": "Data", "type": "Cool data"}},
+        json_schema_extra={"example": {"time": "...", "name": "Data", "type": "Cool data", "pressure": 1.1, "temperature": 200}},
     )
 
 

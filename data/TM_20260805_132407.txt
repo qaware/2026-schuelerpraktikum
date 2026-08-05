@@ -1,0 +1,1 @@
+{"name": "thruster_3.b", "type": "thruster", "pressure": 0.379672451816913, "temperature": 280.4852297057589}
