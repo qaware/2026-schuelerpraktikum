@@ -1,6 +1,6 @@
 import json
 import os
-
+from fastapi.middleware.cors import CORSMiddleware
 import motor.motor_asyncio
 import requests
 from fastapi import FastAPI
@@ -11,6 +11,13 @@ from starlette.responses import JSONResponse
 from models import DataModel, UpdateDataModel
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 os.environ["MONGODB_URL"] = "mongodb://root:password@localhost:27017/?retryWrites=true&w=majority"
 client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
 db = client.get_database("data")
