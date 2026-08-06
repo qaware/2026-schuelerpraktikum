@@ -1,89 +1,99 @@
-import React, { useEffect, useState } from "react";
-import "./stylesheet.css";
+import { useEffect, useRef } from "react";
+import "./stylesheet_suche.css";
 
-function App() {
-  const [suchbegriff, setSuchbegriff] = useState("");
-  const [istOffen, setIstOffen] = useState(false);
-  const [data, setData] = useState([]); // Start with an empty array
+export default function Suche({
+  suchbegriff,
+  onChange,
+  onSchliessen,
+  trefferAnzahl,
+  gesamtAnzahl,
+  autoFokus = false,
+}) {
+  const inputRef = useRef(null);
 
+  // Nach dem Wechsel von der Startseite direkt ins Suchfeld springen.
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/data/");
+    if (autoFokus) inputRef.current?.focus();
+  }, [autoFokus]);
 
-        if (!response.ok) {
-          throw new Error("Fehler beim Laden der Daten");
+  // Strg/Cmd+K fokussiert die Suche. Escape leert sie – und führt,
+  // wenn schon leer, zurück zur Startseite.
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        if (suchbegriff !== "") {
+          onChange("");
+        } else {
+          onSchliessen?.();
         }
-
-        const json = await response.json();
-        console.log(json);
-        setData(json);
-      } catch (error) {
-        console.error(error);
       }
     };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onChange, onSchliessen, suchbegriff]);
 
-    fetchData();
-  }, []);
-
-  const gefilterteDaten = data.filter((item) =>
-    item.name.toLowerCase().includes(suchbegriff.toLowerCase())
-  );
+  const istAktiv = suchbegriff.trim() !== "";
 
   return (
-    <>
-      <button
-        className="btn-top-right"
-        onClick={() => setIstOffen(true)}
-      >
-        🔍 Suchen
-      </button>
+    <div className="suche">
+      <div className="suche-feld">
+        <span className="such-chip">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="20" y1="20" x2="16.65" y2="16.65" />
+          </svg>
+        </span>
 
-      {istOffen && (
-        <div className="fullscreen-overlay">
+        <input
+          ref={inputRef}
+          type="search"
+          className="suche-input"
+          placeholder="Sensor, Typ oder Zeitstempel suchen…"
+          value={suchbegriff}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Sensordaten durchsuchen"
+        />
+
+        {istAktiv ? (
           <button
-            className="close-overlay-btn"
+            type="button"
+            className="suche-clear"
             onClick={() => {
-              setIstOffen(false);
-              setSuchbegriff("");
+              onChange("");
+              inputRef.current?.focus();
             }}
+            aria-label="Suche zurücksetzen"
           >
-            ✕ Schließen
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
           </button>
+        ) : (
+          <kbd className="suche-kbd">⌘K</kbd>
+        )}
+      </div>
 
-          <div className="overlay-content">
-            <h2>Sensor Suche</h2>
+      <p className="suche-status" role="status">
+        {istAktiv ? (
+          <>
+            <strong className="suche-treffer">{trefferAnzahl}</strong> von{" "}
+            {gesamtAnzahl} Datensätzen
+          </>
+        ) : (
+          `${gesamtAnzahl} Datensätze`
+        )}
+      </p>
 
-            <input
-              type="text"
-              className="overlay-input"
-              placeholder="Sensor Name eingeben..."
-              value={suchbegriff}
-              onChange={(e) => setSuchbegriff(e.target.value)}
-              autoFocus
-            />
-
-            <div className="overlay-results">
-              {suchbegriff !== "" && gefilterteDaten.length > 0 && (
-                <ul>
-                  {gefilterteDaten.map((item, index) => (
-                    <li key={item.id ?? index}>
-                      <strong>{item.name}</strong> — Temp: {item.temperature} |
-                      Druck: {item.pressure}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {suchbegriff !== "" && gefilterteDaten.length === 0 && (
-                <p>Keine Ergebnisse gefunden.</p>
-              )}
-            </div>
-          </div>
-        </div>
+      {!istAktiv && (
+        <p className="suche-tipp">
+          Tipp: mehrere Wörter kombinieren – z.&nbsp;B. <code>thruster 2026</code>
+        </p>
       )}
-    </>
+    </div>
   );
 }
-
-export default App;
