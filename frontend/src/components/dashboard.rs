@@ -547,15 +547,19 @@ pub fn Dashboard() -> impl IntoView {
 
             <div class="flex flex-col gap-6 my-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <Suspense fallback=move || view!{ <div class="col-span-full text-gray-400">"Lade Satelliten..."</div> }>
-                        {move || match satellites.get() {
-                            None => view! { <div>"Warte..."</div> }.into_any(),
-                            Some(sats) if sats.is_empty() => view! { <div class="col-span-full text-gray-400">"Noch keine Satelliten empfangen."</div> }.into_any(),
-                            Some(sats) => sats.into_iter().map(|s| {
-                                view! { <SatelliteChart name=s /> }
-                            }).collect_view().into_any()
-                        }}
-                    </Suspense>
+                    {move || (!sat_loaded.get()).then(|| view! {
+                        <div class="col-span-full text-gray-400">"Lade Satelliten..."</div>
+                    })}
+                    {move || (sat_loaded.get() && satellites.get().is_empty()).then(|| view! {
+                        <div class="col-span-full text-gray-400">"Noch keine Satelliten empfangen."</div>
+                    })}
+                    // Keyed, so a newly appearing satellite mounts one extra
+                    // chart instead of rebuilding the ones already running.
+                    <For
+                        each=move || satellites.get()
+                        key=|name: &String| name.clone()
+                        children=move |name: String| view! { <SatelliteChart name=name /> }
+                    />
                 </div>
 
                 <div class="w-full p-6 rounded-3xl bg-white border border-gray-200 shadow-sm min-h-64 overflow-x-auto">
