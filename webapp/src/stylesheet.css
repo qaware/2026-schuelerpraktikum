@@ -1,3 +1,173 @@
+.sensor-section {
+    margin: 0 auto 48px;
+    width: 90%;
+}
+
+.sensor-section h2 {
+    text-align: left;
+    margin: 0 0 12px 4px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* Der Wrapper sorgt fuer die runden Ecken und den Schatten */
+.table-wrapper {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    background: var(--bg);
+}
+
+thead th {
+    background: var(--accent-bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--accent-border);
+}
+
+tbody td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Letzte Zeile ohne Trennlinie, damit die runde Ecke sauber bleibt */
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Zebra-Streifen */
+tbody tr:nth-child(even) {
+    background: var(--social-bg);
+}
+
+tbody tr:hover {
+    background: var(--accent-bg);
+}
+
+/* Zahlenspalten: rechtsbuendig und mit gleich breiten Ziffern */
+.num {
+    text-align: right !important;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.empty {
+    text-align: center !important;
+    padding: 24px;
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Sensorname ist anklickbar und oeffnet das Detail-Fenster */
+.sensor-name {
+    display: inline-block;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font: inherit;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.sensor-name:hover,
+.sensor-name:focus-visible {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+/* Detail-Fenster */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 760px;
+    max-height: 85vh;
+    padding: 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 22px;
+}
+
+.modal-subtitle {
+    margin: 4px 0 0;
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.modal-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+@media (max-width: 1024px) {
+    .sensor-section {
+        width: 100%;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    thead th,
+    tbody td {
+        padding: 10px 12px;
+    }
 /* ============================================================
    Design-Tokens – minimalistisch in Blau & Weiß
    ============================================================ */
@@ -64,6 +234,32 @@ body {
   min-height: 100svh;
 }
 
+:root {
+  --text: #000000;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #2563eb;
+  --accent-bg: rgba(37, 99, 235, 0.1);
+  --accent-border: rgba(37, 99, 235, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 24px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 ::selection {
   background: var(--blau-100);
   color: var(--blau-700);
@@ -82,6 +278,19 @@ body {
   }
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #60a5fa;
+    --accent-bg: rgba(96, 165, 250, 0.15);
+    --accent-border: rgba(96, 165, 250, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 /* ============================================================
    Layout
    ============================================================ */
