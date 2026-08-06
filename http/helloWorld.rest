@@ -1,2 +1,0 @@
-### Hello World
-GET {{baseUrl}}/hello_world
