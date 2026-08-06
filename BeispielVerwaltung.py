@@ -1,83 +1,108 @@
-import json
 import os
 from fastapi.middleware.cors import CORSMiddleware
 import motor.motor_asyncio
-import requests
-from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
-from starlette import status
-from starlette.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, status
 
-from models import DataModel, UpdateDataModel
+from models import DataModel, GroupedDataModel, MeasurementModel
+
 
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+
+MONGODB_URL = os.getenv(
+    "MONGODB_URL",
+    "mongodb://root:password@localhost:27017/"
 )
-os.environ["MONGODB_URL"] = "mongodb://root:password@localhost:27017/?retryWrites=true&w=majority"
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
-db = client.get_database("data")
 
-# TODO: Welche Daten müssen zur Verfügung gestellt werden?
-# TODO: Wie verhindern wir, dass beschädigte Daten in das System gelangen?
-# TODO: Wie melden wir Nutzern zurück, dass keine Sensordaten vorhanden sind?
-# TODO: Wie melden wir Nutzern, dass bereits ein entsprechendes Datenset existiert?
-# TODO: Was gehört zur Verwaltung der Daten noch?
-# TODO: Benötigen wir noch andere Schnittstellen für unsere Nutzer?
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
+
+db = client["data"]
+collection = db["grouped_data"]
 
 
-@app.get("/hello_world", response_description="Hello World")
-def hello_world():
-    response = "Hello World"
-    return JSONResponse(status_code=status.HTTP_200_OK, content=response)
+def JSON_Transformation(
+    data: DataModel
+) -> GroupedDataModel:
+    measurement = MeasurementModel(
+        time=data.time,
+        pressure=data.pressure,
+        temperature=data.temperature,
+    )
+
+    return GroupedDataModel(
+        type=data.type,
+        name=data.name,
+        measurements=[measurement],
+    )
 
 
-@app.post("/data/", response_description="Create Data", response_model=DataModel)
-async def create_data(data: DataModel):
-    new_data = await db["data"].insert_one(jsonable_encoder(data))
-    created_data = await db["data"].find_one({"_id": new_data.inserted_id})
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_data)
+@app.post(
+    "/data/",
+    response_description="Receive and store data",
+    status_code=status.HTTP_201_CREATED,
+)
+async def receive_data(data: DataModel):
+    grouped_data = JSON_Transformation(data)
+
+    measurements = [
+        measurement.model_dump()
+        for measurement in grouped_data.measurements
+    ]
+
+    await collection.update_one(
+        {
+            "type": grouped_data.type,
+            "name": grouped_data.name,
+        },
+        {
+            "$setOnInsert": {
+                "type": grouped_data.type,
+                "name": grouped_data.name,
+            },
+            "$push": {
+                "measurements": {
+                    "$each": measurements
+                }
+            },
+            "$set": {
+                "current": measurements[-1]
+            },
+        },
+        upsert=True,
+    )
+
+    return {
+        "message": "Datensatz gespeichert"
+    }
 
 
-@app.get("/data/", response_description="List All Data", response_model=list[DataModel])
-async def list_data():
-    data = await db["data"].find().to_list(1000)
-    return JSONResponse(status_code=status.HTTP_200_OK, content=data)
+@app.get(
+    "/data/current",
+    response_model=dict[str, dict[str, MeasurementModel]],
+)
+async def get_current_data():
+    mongo_data = await collection.find(
+        {},
+        {
+            "_id": 0,
+            "type": 1,
+            "name": 1,
+            "current": 1,
+        },
+    ).to_list(length=1000)
 
+    if not mongo_data:
+        raise HTTPException(
+            status_code=404,
+            detail="Keine Sensordaten vorhanden.",
+        )
 
-@app.get("/data/{id}", response_description="Read Data", response_model=DataModel)
-async def read_data(id: str):
-    data = await db["data"].find_one({"_id": id})
-    return JSONResponse(status_code=status.HTTP_200_OK, content=data)
+    result = {}
 
+    for dataset in mongo_data:
+        data_type = dataset["type"]
+        name = dataset["name"]
 
-@app.put("/data/{id}", response_description="Update Data", response_model=DataModel)
-async def update_data(id: str, update: UpdateDataModel):
-    await db["data"].update_one({"_id": id}, {"$set": jsonable_encoder(update)})
-    updated_data = await db["data"].find_one({"_id": id})
+        result.setdefault(data_type, {})
+        result[data_type][name] = dataset["current"]
 
-    return JSONResponse(status_code=status.HTTP_200_OK, content=updated_data)
-
-
-@app.delete("/data/{id}", response_description="Delete Data")
-async def delete_data(id: str):
-    await db["data"].delete_one({"_id": id})
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
-
-if __name__ == '__main__':
-    data = DataModel(name="Test")
-    new_data = UpdateDataModel(name="Updated Test")
-    answer1 = requests.post("http://127.0.0.1:8000/data/", data.model_dump_json(),
-                             headers={"Content-Type": "application/json"})
-    answer2 = requests.put(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}", new_data.model_dump_json(),
-                             headers={"Content-Type": "application/json"})
-    answer3 = requests.delete(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}")
-    answer4 = requests.get(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}")
-    print(answer1.content)
-    print(answer2.content)
-    print(answer3.content)
-    print(answer4.content)
+    return result

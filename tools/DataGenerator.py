@@ -114,4 +114,3 @@ if __name__ == '__main__':
         count=Counter(list1)
         time.sleep(3)
     print(count)
-  
