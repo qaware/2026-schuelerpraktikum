@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::components::*;
-use leptos_router::path; 
+use leptos_router::path;
 
 use crate::components::nav::Nav;
 use crate::components::home::Home;
@@ -15,7 +15,7 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             <Nav />
-            
+
             <main class="p-4">
                 <Routes fallback=|| view! { <div class="p-4 text-red-500">"Seite nicht gefunden (404)"</div> }>
                     <Route path=path!("/") view=Home />
