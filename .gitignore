@@ -3,3 +3,4 @@
 *.iml
 *.json
 /__pycache__
+go.sum
