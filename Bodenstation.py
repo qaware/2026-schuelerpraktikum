@@ -5,7 +5,7 @@ import requests
 import os
 import json
 
-from models import DataModel, UpdateDataModel
+from models import DataModel
 
 def clean_filename(inp): # bereinigt Dateinamen von Dateipfad und -suffix
     temp_filename = list(inp)[8:-5]
@@ -44,10 +44,19 @@ def receive_sat_files():
                     json_content = list(json_content)
                         
                     filename = clean_filename(str(item))
+
+                    # Dateiname "20260806_143000" -> ISO-Zeitstempel "2026-08-06T14:30:00"
+                    try:
+                        zeitstempel = datetime.strptime(filename, "%Y%m%d_%H%M%S").isoformat()
+                    except ValueError:
+                        zeitstempel = None
+
                     if not json_content[0] == "{": # TODO: bessere Validierung über Dictionary
                         print("Fehlerhafte Datei gefunden: erstes Zeichen beginnt nicht mit {")
+                    elif zeitstempel is None:
+                        print("Fehlerhafte Datei gefunden: Zeitstempel im Dateinamen unlesbar:", filename)
                     else:
-                        datensatz = '{"time": "' + filename + '", '
+                        datensatz = '{"time": "' + zeitstempel + '", '
                         for i in range(1, len(json_content)):
                             datensatz += json_content[i]
 
@@ -63,7 +72,7 @@ def receive_sat_files():
             else:
                 print("Fehlerhafte Datei gefunden:", str(item.suffix))
 
-            if str(item) != "data\Example_data.json":
+            if True:#str(item) != "data\Example_data.json":
                 os.remove(item)
 
     return input_daten
@@ -82,6 +91,7 @@ while True:
     sat_data = receive_sat_files()
     if len(sat_data) > 0:
         for i in range(len(sat_data)):
+            print(sat_data[i])
             response = requests.post("http://127.0.0.1:8000/data/", sat_data[i], headers={"Content-Type": "application/json"})
             print(response, response.content)
     else:
