@@ -2,3 +2,19 @@
 
 @source "./index.html";
 @source "./src/**/*.rs";
+
+/* Dark Mode ist fest verdrahtet, nicht per 'dark:'-Variante: es gibt keinen
+   Umschalter, also waere jede Utility sonst doppelt zu pflegen.
+
+   'color-scheme: dark' ist der wichtige Teil - davon haengt ab, was Tailwind
+   nicht erreicht: das aufgeklappte Menue des <select> im Dashboard, die
+   Scrollbars und die Standard-Fokusringe. Ohne die Zeile klappt ueber der
+   dunklen Seite ein weisses Dropdown auf. */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-300);
+}
