@@ -37,7 +37,10 @@ def receive_sat_files():
     data_path = pathlib.Path("data")
     input_daten = []
 
-    for item in data_path.iterdir(): # alle Daten im Ordner data
+    # sortiert, weil die Dateinamen TM_JJJJMMTT_HHMMSS alphabetisch = chronologisch
+    # sind. Ohne sorted() werden bei mehreren Dateien pro Durchlauf Messwerte
+    # in vertauschter Reihenfolge gesendet.
+    for item in sorted(data_path.iterdir()): # alle Daten im Ordner data
         if item.is_file():
             if item.suffix == ".json": # Datentyp prüfen
                 with open(item, "r") as f: # öffnen zum Auslesen
@@ -53,9 +56,12 @@ def receive_sat_files():
                         zeitstempel = None
 
                     if not json_content[0] == "{": # TODO: bessere Validierung über Dictionary
-                        print("Fehlerhafte Datei gefunden: erstes Zeichen beginnt nicht mit {")
+                        print("\033[31mFehlerhafte Datei gefunden: erstes Zeichen beginnt nicht mit {\033[0m")
+                        print("_______________________________________________________________________________________________________________________________________________________________________")
                     elif zeitstempel is None:
-                        print("Fehlerhafte Datei gefunden: Zeitstempel im Dateinamen unlesbar:", filename)
+
+                        print("\033[31mFehlerhafte Datei gefunden: Zeitstempel im Dateinamen unlesbar:\033[0m", filename)
+                        print("_______________________________________________________________________________________________________________________________________________________________________")
                     else:
                         datensatz = '{"time": "' + zeitstempel + '", '
                         for i in range(1, len(json_content)):
@@ -65,13 +71,15 @@ def receive_sat_files():
                             if validate_data_values(datensatz, 0.5, 9, 200, 500): # prüft auf gültige Werte
                                 input_daten.append(datensatz)
                             else:
-                                print("Fehlerhafte Datei gefunden: verdächtige Werte")
+                                print("\033[31mFehlerhafte Datei gefunden: verdächtige Werte\033[0m")
+                                print("_______________________________________________________________________________________________________________________________________________________________________")
                         else:
-                            print("Fehlerhafte Datei gefunden: Datentypen stimmen nicht")
-
+                            print("\033[31mFehlerhafte Datei gefunden: Datentypen stimmen nicht\033[0m")
+                            print("_______________________________________________________________________________________________________________________________________________________________________")
     
             else:
-                print("Fehlerhafte Datei gefunden:", str(item.suffix))
+                print("\033[31mFehlerhafte Datei gefunden:\033[0m", str(item.suffix))
+                print("_______________________________________________________________________________________________________________________________________________________________________")
 
             if True:#str(item) != "data\Example_data.json":
                 os.remove(item)
@@ -92,9 +100,10 @@ while True:
     sat_data = receive_sat_files()
     if len(sat_data) > 0:
         for i in range(len(sat_data)):
-            print(sat_data[i])
+            print("sat_data[i]: ", sat_data[i])
             response = requests.post("http://127.0.0.1:8000/data/", sat_data[i], headers={"Content-Type": "application/json"})
-            print(response, response.content)
+            print(f"\033[32m{response}, {response.content}\033[0m")
+            print("_______________________________________________________________________________________________________________________________________________________________________")
     else:
         sleep(0.5)
 
