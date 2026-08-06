@@ -1,116 +1,159 @@
-/* Container oben rechts fixieren */
-.mini-search-wrapper {
-  position: fixed !important;
-  top: 20px !important;
-  right: 20px !important;
-  z-index: 9999;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Dezenter, kleiner Button */
-.mini-trigger-btn {
+/* ============================================================
+   Suche – schlicht, blau/weiß, im Seitenfluss statt schwebend
+   ============================================================ */
+.suche {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4a5568;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: all 0.15s ease;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.mini-trigger-btn:hover {
-  border-color: #cbd5e0;
-  color: #1a202c;
-  background: #f7fafc;
-}
-
-/* Kompaktes Suchfeld (Breite ca. 280px) */
-.mini-search-box {
-  width: 280px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  overflow: hidden;
-}
-
-.mini-input-row {
+.suche-feld {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 8px 10px;
-  gap: 8px;
-  border-bottom: 1px solid transparent;
+  gap: 10px;
+  flex: 1 1 320px;
+  padding: 0 10px;
+  height: 50px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  /* Verlaufsrand: innen weiß (padding-box), Rand als Verlauf (border-box) */
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    linear-gradient(135deg, var(--blau-200), #c7d2fe) border-box;
+  transition: box-shadow 0.2s ease;
 }
 
-.mini-search-box:has(.mini-results-list) .mini-input-row {
-  border-bottom-color: #edf2f7;
+.suche-feld:focus-within {
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    var(--verlauf) border-box;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12),
+    0 8px 24px -12px rgba(37, 99, 235, 0.55);
 }
 
-.mini-input-row input {
-  width: 100%;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: #2d3748;
-  background: transparent;
+/* Farbiges Kästchen um die Lupe – wie auf der Startseite */
+.suche-feld .such-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
 }
 
-.mini-input-row input::placeholder {
-  color: #a0aec0;
+.suche-feld .such-chip svg {
+  width: 15px;
+  height: 15px;
 }
 
-.mini-close-btn {
+.suche-feld:focus-within .such-chip {
+  transform: scale(1.06) rotate(-4deg);
+}
+
+.suche-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  font: inherit;
+  font-size: 15px;
+  color: var(--grau-900);
   background: none;
   border: none;
-  color: #a0aec0;
-  font-size: 12px;
+  outline: none;
+}
+
+.suche-input::placeholder {
+  color: var(--grau-400);
+}
+
+/* natives Kreuz von type="search" ausblenden – wir haben einen eigenen Button */
+.suche-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.suche-clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  padding: 2px 4px;
+  transition: background 0.15s ease;
 }
 
-.mini-close-btn:hover {
-  color: #4a5568;
+.suche-clear svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--grau-400);
+  stroke-width: 2.2;
+  stroke-linecap: round;
 }
 
-/* Ergebnisse */
-.mini-results-list {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 4px;
+.suche-clear:hover {
+  background: var(--grau-100);
 }
 
-.mini-result-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  transition: background 0.1s ease;
+.suche-clear:hover svg {
+  stroke: var(--grau-900);
 }
 
-.mini-result-item:hover {
-  background: #f7fafc;
+.suche-clear:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
-.item-name {
-  font-weight: 500;
-  color: #2d3748;
-}
-
-.item-stats {
-  color: #718096;
+.suche-kbd {
+  flex: none;
+  padding: 4px 8px;
+  font-family: var(--sans);
   font-size: 11px;
+  font-weight: 600;
+  color: var(--blau-600);
+  background: var(--blau-50);
+  border: 1px solid var(--blau-100);
+  border-radius: 6px;
 }
 
-.mini-no-results {
-  padding: 10px;
+.suche-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--grau-500);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.suche-treffer {
+  font-weight: 600;
+  color: var(--blau-700);
+}
+
+/* Bedien-Tipp – bricht immer in eine eigene Zeile um */
+.suche-tipp {
+  flex-basis: 100%;
+  margin: -6px 0 0;
   font-size: 12px;
-  color: #a0aec0;
-  text-align: center;
+  color: var(--grau-400);
+}
+
+.suche-tipp code {
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--grau-500);
+  background: var(--grau-100);
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .suche-kbd {
+    display: none;
+  }
+
+  .suche-tipp {
+    display: none;
+  }
 }

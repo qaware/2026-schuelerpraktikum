@@ -1,93 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import "./stylesheet.css";
+import { useEffect, useRef } from "react";
+import "./stylesheet_suche.css";
 
-export default function Suche() {
-  const [suchbegriff, setSuchbegriff] = useState('');
-  const [istOffen, setIstOffen] = useState(false);
-  const [data, setData] = useState([]); // Start with an empty array
+export default function Suche({
+  suchbegriff,
+  onChange,
+  onSchliessen,
+  trefferAnzahl,
+  gesamtAnzahl,
+  autoFokus = false,
+}) {
+  const inputRef = useRef(null);
 
+  // Nach dem Wechsel von der Startseite direkt ins Suchfeld springen.
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:8000/data/");
+    if (autoFokus) inputRef.current?.focus();
+  }, [autoFokus]);
 
-        if (!response.ok) {
-          throw new Error("Fehler beim Laden der Daten");
-        }
-
-        const json = await response.json();
-        console.log(json);
-        setData(json);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const gefilterteDaten = data.filter((item) =>
-    item.name.toLowerCase().includes(suchbegriff.toLowerCase())
-  );
-
+  // Strg/Cmd+K fokussiert die Suche. Escape leert sie – und führt,
+  // wenn schon leer, zurück zur Startseite.
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setIstOffen(false);
-        setSuchbegriff('');
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        if (suchbegriff !== "") {
+          onChange("");
+        } else {
+          onSchliessen?.();
+        }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onChange, onSchliessen, suchbegriff]);
+
+  const istAktiv = suchbegriff.trim() !== "";
 
   return (
-    <div className="mini-search-wrapper">
-      {!istOffen ? (
-        /* Kleiner Trigger Button oben rechts */
-        <button className="mini-trigger-btn" onClick={() => setIstOffen(true)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    <div className="suche">
+      <div className="suche-feld">
+        <span className="such-chip">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="20" y1="20" x2="16.65" y2="16.65" />
           </svg>
-          <span>Suchen</span>
-        </button>
-      ) : (
-        /* Kompakte Suchbox */
-        <div className="mini-search-box">
-          <div className="mini-input-row">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              type="text"
-              placeholder="Sensor suchen..."
-              value={suchbegriff}
-              onChange={(e) => setSuchbegriff(e.target.value)}
-              autoFocus
-            />
-            <button className="mini-close-btn" onClick={() => { setIstOffen(false); setSuchbegriff(''); }}>
-              ✕
-            </button>
-          </div>
+        </span>
 
-          {/* Ergebnisse in kompakter Liste */}
-          {suchbegriff !== '' && (
-            <div className="mini-results-list">
-              {gefilterteDaten.length > 0 ? (
-                gefilterteDaten.map((item) => (
-                  <div key={item.id} className="mini-result-item">
-                    <span className="item-name">{item.name}</span>
-                    <span className="item-stats">{item.temperature} · {item.pressure}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="mini-no-results">Keine Treffer</div>
-              )}
-            </div>
-          )}
-        </div>
+        <input
+          ref={inputRef}
+          type="search"
+          className="suche-input"
+          placeholder="Sensor, Typ oder Zeitstempel suchen…"
+          value={suchbegriff}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Sensordaten durchsuchen"
+        />
+
+        {istAktiv ? (
+          <button
+            type="button"
+            className="suche-clear"
+            onClick={() => {
+              onChange("");
+              inputRef.current?.focus();
+            }}
+            aria-label="Suche zurücksetzen"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        ) : (
+          <kbd className="suche-kbd">⌘K</kbd>
+        )}
+      </div>
+
+      <p className="suche-status" role="status">
+        {istAktiv ? (
+          <>
+            <strong className="suche-treffer">{trefferAnzahl}</strong> von{" "}
+            {gesamtAnzahl} Datensätzen
+          </>
+        ) : (
+          `${gesamtAnzahl} Datensätze`
+        )}
+      </p>
+
+      {!istAktiv && (
+        <p className="suche-tipp">
+          Tipp: mehrere Wörter kombinieren – z.&nbsp;B. <code>thruster 2026</code>
+        </p>
       )}
     </div>
   );
