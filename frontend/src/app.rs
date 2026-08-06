@@ -17,7 +17,7 @@ pub fn App() -> impl IntoView {
             <Nav />
 
             <main class="p-4">
-                <Routes fallback=|| view! { <div class="p-4 text-red-500">"Seite nicht gefunden (404)"</div> }>
+                <Routes fallback=|| view! { <div class="p-4 text-red-400">"Seite nicht gefunden (404)"</div> }>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/dashboard") view=Dashboard />
                     <Route path=path!("/Satellite") view=Satellite />

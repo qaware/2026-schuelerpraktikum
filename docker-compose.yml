@@ -1,4 +1,3 @@
-version: '0.1'
 services:
   mongodb:
     image: mongo:latest
@@ -23,6 +22,21 @@ services:
       ADDR: ":8585"
     ports:
       - 8585:8585
+
+  # Fuellt die Datenbank mit Telemetrie, sonst bleibt das Dashboard leer: das
+  # Backend legt Satelliten erst an, wenn Messwerte per POST /data ankommen.
+  # Nur zur Entwicklung - wer echte Daten einspielt, kann den Service mit
+  # 'docker compose up mongodb backend frontend' weglassen.
+  datagen:
+    build:
+      context: ./tools
+      dockerfile: Dockerfile
+    container_name: datagen
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      INGEST_URL: http://backend:8585/data
 
   frontend:
     build:

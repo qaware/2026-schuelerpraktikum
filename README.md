@@ -2,6 +2,45 @@
 
 Repository für das Schülerpraktikum 2026 bei QAware.
 
+## Schnellstart
+
+Alles (MongoDB, Go-Backend, Leptos-Frontend, Datengenerator) mit einem Befehl
+starten — dafür wird nur Docker gebraucht, kein lokales Go, npm oder Rust:
+
+```shell
+./run.sh
+```
+
+- Frontend: <http://localhost:8686>
+- Backend: <http://localhost:8585>
+
+`./run.sh -d` startet im Hintergrund, `docker compose down` beendet alles.
+Wer `make` hat, kann `make up`, `make logs`, `make down` usw. nutzen —
+`make help` listet alle Targets.
+
+Der `datagen`-Service schiebt fortlaufend Telemetrie an `POST /data`. Ohne ihn
+bleibt das Dashboard leer, denn das Backend legt einen Satelliten erst an, wenn
+der erste Messwert für ihn ankommt. Wer stattdessen eigene Daten einspielt,
+lässt ihn weg:
+
+```shell
+docker compose up mongodb backend frontend
+```
+
+Für MongoDB ist kein Volume konfiguriert — `docker compose down` verwirft die
+Daten. Beim nächsten Start füllt `datagen` sie innerhalb weniger Sekunden neu.
+
+Das Skript erzeugt beim ersten Lauf die Lockfiles `backend/go.sum` und
+`frontend/package-lock.json`, die die Dockerfiles brauchen (`go mod download`
+bzw. `npm ci`), und wiederholt das automatisch, wenn sich `go.mod` oder
+`package.json` ändern.
+
+### Lokale Entwicklung ohne Docker
+
+Für Nix-Nutzer liefert `nix-shell` im Repo-Root alle Toolchains auf einmal
+(Go, Rust + wasm-Target, Trunk, Node, Python, make). Reine Frontend-Arbeit
+geht auch mit `nix-shell frontend/shell.nix`.
+
 ## Installation
 
 ### 1. Create and activate a virtual environment for your python packages of this project:

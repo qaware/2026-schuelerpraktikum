@@ -160,7 +160,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
     let chart_svg = move || {
         let logs = chart_logs.get();
         if logs.is_empty() {
-            return view! { <div class="text-xs text-gray-400 flex items-center justify-center h-full">"Warte auf Daten..."</div> }.into_any();
+            return view! { <div class="text-xs text-slate-500 flex items-center justify-center h-full">"Warte auf Daten..."</div> }.into_any();
         }
 
         let metric = selected_metric.get();
@@ -238,7 +238,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             (height - padding) - (normalized * (height - 2.0 * padding))
         };
 
-        let colors = ["#2563eb", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
+        let colors = ["#60a5fa", "#f87171", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"];
 
         let mut paths = Vec::new();
         let mut legend = Vec::new();
@@ -279,8 +279,8 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                     on:click=toggle_sensor
                     title=if has_data { String::new() } else { "Kein Messwert für diese Metrik".to_string() }
                 >
-                    <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active && has_data { color } else { "#9ca3af" })></span>
-                    <span class="text-xs text-gray-600 hover:text-gray-900 select-none">{sensor_name.clone()}</span>
+                    <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active && has_data { color } else { "#64748b" })></span>
+                    <span class="text-xs text-slate-400 hover:text-slate-100 select-none">{sensor_name.clone()}</span>
                 </div>
             });
 
@@ -335,23 +335,23 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 let ts = min_ts + i * step;
                 let x = get_x(ts);
                 x_axis_labels.push(view! {
-                    <text x=x y={height - 15.0} text-anchor="middle" font-size="10" fill="#6b7280">
+                    <text x=x y={height - 15.0} text-anchor="middle" font-size="10" fill="#94a3b8">
                         {format_time(ts)}
                     </text>
                 });
             }
         } else {
             x_axis_labels.push(view! {
-                <text x={get_x(min_ts)} y={height - 15.0} text-anchor="middle" font-size="10" fill="#6b7280">
+                <text x={get_x(min_ts)} y={height - 15.0} text-anchor="middle" font-size="10" fill="#94a3b8">
                     {format_time(min_ts)}
                 </text>
             });
         }
 
         let y_axis_labels = vec![
-            view! { <text x={padding - 5.0} y={get_y(padded_max_val) + 4.0} text-anchor="end" font-size="10" fill="#6b7280">{format!("{:.1}", padded_max_val)}</text> },
-            view! { <text x={padding - 5.0} y={get_y(padded_min_val + padded_range / 2.0) + 4.0} text-anchor="end" font-size="10" fill="#6b7280">{format!("{:.1}", padded_min_val + padded_range / 2.0)}</text> },
-            view! { <text x={padding - 5.0} y={get_y(padded_min_val) + 4.0} text-anchor="end" font-size="10" fill="#6b7280">{format!("{:.1}", padded_min_val)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_max_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_max_val)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_min_val + padded_range / 2.0) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_min_val + padded_range / 2.0)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_min_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_min_val)}</text> },
         ];
 
         let unit_suffix = if metric == "temperature" { "K" } else { "Bar" };
@@ -363,10 +363,10 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 
                 view! {
                     <g transform=format!("translate({}, {})", x_pos, y_pos)>
-                        <rect x="0" y="0" width="90" height="38" fill="#1f2937" rx="4" opacity="0.9" filter="drop-shadow(0 4px 3px rgb(0 0 0 / 0.07))" />
-                        <text x="45" y="14" text-anchor="middle" font-size="11" fill="white" font-weight="bold">{format!("{} {}", val_str, unit_suffix)}</text>
-                        <text x="45" y="24" text-anchor="middle" font-size="9" fill="#d1d5db">{sensor_name}</text>
-                        <text x="45" y="33" text-anchor="middle" font-size="8" fill="#9ca3af">{time_str}</text>
+                        <rect x="0" y="0" width="90" height="38" fill="#334155" stroke="#64748b" stroke-width="0.5" rx="4" opacity="0.97" filter="drop-shadow(0 4px 6px rgb(0 0 0 / 0.4))" />
+                        <text x="45" y="14" text-anchor="middle" font-size="11" fill="#f8fafc" font-weight="bold">{format!("{} {}", val_str, unit_suffix)}</text>
+                        <text x="45" y="24" text-anchor="middle" font-size="9" fill="#cbd5e1">{sensor_name}</text>
+                        <text x="45" y="33" text-anchor="middle" font-size="8" fill="#94a3b8">{time_str}</text>
                     </g>
                 }
             })
@@ -379,9 +379,9 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 </div>
                 <div class="relative w-full flex-1 min-h-0">
                     <svg class="w-full h-full overflow-visible" viewBox=format!("0 0 {} {}", width, height) preserveAspectRatio="none">
-                        <line x1={padding} y1={get_y(padded_max_val)} x2={width - padding} y2={get_y(padded_max_val)} stroke="#f3f4f6" stroke-width="1" />
-                        <line x1={padding} y1={get_y(padded_min_val + padded_range / 2.0)} x2={width - padding} y2={get_y(padded_min_val + padded_range / 2.0)} stroke="#f3f4f6" stroke-width="1" />
-                        <line x1={padding} y1={get_y(padded_min_val)} x2={width - padding} y2={get_y(padded_min_val)} stroke="#e5e7eb" stroke-width="1" />
+                        <line x1={padding} y1={get_y(padded_max_val)} x2={width - padding} y2={get_y(padded_max_val)} stroke="#1e293b" stroke-width="1" />
+                        <line x1={padding} y1={get_y(padded_min_val + padded_range / 2.0)} x2={width - padding} y2={get_y(padded_min_val + padded_range / 2.0)} stroke="#1e293b" stroke-width="1" />
+                        <line x1={padding} y1={get_y(padded_min_val)} x2={width - padding} y2={get_y(padded_min_val)} stroke="#334155" stroke-width="1" />
 
                         {x_axis_labels}
                         {y_axis_labels}
@@ -399,16 +399,16 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         // source scanner can find them; building them by concatenation would
         // leave the utilities out of the generated stylesheet.
         <div class=move || if expanded.get() {
-            "p-5 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col relative overflow-hidden transition-all col-span-full h-[620px]"
+            "p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col relative overflow-hidden transition-all col-span-full h-[620px]"
         } else {
-            "p-5 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col relative overflow-hidden transition-all h-[340px]"
+            "p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col relative overflow-hidden transition-all h-[340px]"
         }>
 
 
             <div class="flex items-center justify-between mb-4">
                 <div class="space-y-1">
-                    <h2 class="text-sm font-bold text-gray-900">{format!("Satellit: {}", name)}</h2>
-                    <p class="text-xs text-gray-500">"Sensordaten"</p>
+                    <h2 class="text-sm font-bold text-slate-100">{format!("Satellit: {}", name)}</h2>
+                    <p class="text-xs text-slate-400">"Sensordaten"</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <select
@@ -417,20 +417,20 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                                 set_viewport_size.set(val);
                             }
                         }
-                        class="px-2 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium border-none cursor-pointer focus:ring-0"
+                        class="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium border-none cursor-pointer focus:ring-0"
                     >
                         <option value="10">"Letzte 10"</option>
                         <option value="25" selected=true>"Letzte 25"</option>
                         <option value="50">"Letzte 50"</option>
                         <option value="100">"Letzte 100"</option>
                     </select>
-                    <div class="flex rounded-lg bg-gray-100 p-1 text-xs font-medium">
+                    <div class="flex rounded-lg bg-slate-800 p-1 text-xs font-medium">
                     <button
                         on:click=move |_| set_selected_metric.set("temperature".to_string())
                         class=move || if selected_metric.get() == "temperature" {
-                            "px-2.5 py-1.5 rounded-md bg-white text-gray-900 shadow-sm font-semibold"
+                            "px-2.5 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
                         } else {
-                            "px-2.5 py-1.5 text-gray-600 hover:text-gray-900 transition"
+                            "px-2.5 py-1.5 text-slate-400 hover:text-slate-100 transition"
                         }
                     >
                         "Temperatur"
@@ -438,9 +438,9 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                     <button
                         on:click=move |_| set_selected_metric.set("pressure".to_string())
                         class=move || if selected_metric.get() == "pressure" {
-                            "px-2.5 py-1.5 rounded-md bg-white text-gray-900 shadow-sm font-semibold"
+                            "px-2.5 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
                         } else {
-                            "px-2.5 py-1.5 text-gray-600 hover:text-gray-900 transition"
+                            "px-2.5 py-1.5 text-slate-400 hover:text-slate-100 transition"
                         }
                     >
                         "Druck"
@@ -448,7 +448,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 </div>
                     <button
                         on:click=move |_| set_expanded.update(|e| *e = !*e)
-                        class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm leading-none font-medium hover:bg-gray-200 transition cursor-pointer"
+                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-sm leading-none font-medium hover:bg-slate-700 transition cursor-pointer"
                         title=move || if expanded.get() { "Verkleinern" } else { "Vergrößern" }
                     >
                         {move || if expanded.get() { "⤡" } else { "⤢" }}
@@ -456,12 +456,12 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 </div>
             </div>
             <div class="flex-1 w-full h-full min-h-0 rounded-xl relative">
-                <Suspense fallback=move || view!{ <div class="text-xs text-gray-400 flex items-center justify-center h-full">"Lade Sensoren..."</div> }>
+                <Suspense fallback=move || view!{ <div class="text-xs text-slate-500 flex items-center justify-center h-full">"Lade Sensoren..."</div> }>
                     {move || {
                         let sens = sensors.get();
                         match sens {
-                            None => view! { <div class="text-xs text-gray-400 flex items-center justify-center h-full">"Warte auf Daten..."</div> }.into_any(),
-                            Some(sens) if sens.is_empty() => view! { <div class="text-xs text-gray-400 flex items-center justify-center h-full">"Keine Sensoren gefunden."</div> }.into_any(),
+                            None => view! { <div class="text-xs text-slate-500 flex items-center justify-center h-full">"Warte auf Daten..."</div> }.into_any(),
+                            Some(sens) if sens.is_empty() => view! { <div class="text-xs text-slate-500 flex items-center justify-center h-full">"Keine Sensoren gefunden."</div> }.into_any(),
                             Some(_) => chart_svg()
                         }
                     }}
@@ -536,10 +536,10 @@ pub fn Dashboard() -> impl IntoView {
 
     view! {
         <div class="container mx-auto max-w-screen-xl px-4">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 pb-6 pt-2">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6 pt-2">
                 <div>
                     <div class="flex items-center align-center">
-                        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">"Satelliten Dashboard"</h1>
+                        <h1 class="text-3xl font-bold text-slate-100 tracking-tight">"Satelliten Dashboard"</h1>
                         <span class="w-2 h-2 ml-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     </div>
                 </div>
@@ -547,30 +547,31 @@ pub fn Dashboard() -> impl IntoView {
 
             <div class="flex flex-col gap-6 my-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {move || (!sat_loaded.get()).then(|| view! {
-                        <div class="col-span-full text-gray-400">"Lade Satelliten..."</div>
-                    })}
-                    {move || (sat_loaded.get() && satellites.get().is_empty()).then(|| view! {
-                        <div class="col-span-full text-gray-400">"Noch keine Satelliten empfangen."</div>
-                    })}
-                    // Keyed, so a newly appearing satellite mounts one extra
-                    // chart instead of rebuilding the ones already running.
-                    <For
-                        each=move || satellites.get()
-                        key=|name: &String| name.clone()
-                        children=move |name: String| view! { <SatelliteChart name=name /> }
-                    />
+                    <Suspense fallback=move || view!{ <div class="col-span-full text-slate-500">"Lade Satelliten..."</div> }>
+                        {move || {
+                            let sats = satellites.get();
+                            if sats.is_empty() {
+                                // Deckt beide Faelle ab: noch nicht geladen und
+                                // wirklich keine Satelliten vorhanden.
+                                view! { <div class="col-span-full text-slate-500">"Noch keine Satelliten empfangen."</div> }.into_any()
+                            } else {
+                                sats.into_iter().map(|s| {
+                                    view! { <SatelliteChart name=s /> }
+                                }).collect_view().into_any()
+                            }
+                        }}
+                    </Suspense>
                 </div>
 
-                <div class="w-full p-6 rounded-3xl bg-white border border-gray-200 shadow-sm min-h-64 overflow-x-auto">
+                <div class="w-full p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm min-h-64 overflow-x-auto">
                     <div class="mt-2 min-w-[600px]">
                         {move || match logs.get() {
-                            None => view! { <p class="text-gray-500">"Lade Daten..."</p> }.into_any(),
+                            None => view! { <p class="text-slate-400">"Lade Daten..."</p> }.into_any(),
                             Some(log_data) => view! {
                                 <div class="space-y-4">
-                                    <p class="font-semibold text-gray-700 text-center text-sm">"Anzahl Empfangen: " {anzahl_empfangen}</p>
-                                    <table class="w-full text-left text-sm text-gray-600">
-                                        <thead class="bg-gray-50 text-gray-700 uppercase text-xs">
+                                    <p class="font-semibold text-slate-300 text-center text-sm">"Anzahl Empfangen: " {anzahl_empfangen}</p>
+                                    <table class="w-full text-left text-sm text-slate-400">
+                                        <thead class="bg-slate-800 text-slate-300 uppercase text-xs">
                                             <tr>
                                                 <th class="py-2.5 px-3 rounded-l-lg">"Zeitstempel"</th>
                                                 <th class="py-2.5 px-3">"Satellit"</th>
@@ -579,11 +580,11 @@ pub fn Dashboard() -> impl IntoView {
                                                 <th class="py-2.5 px-3 rounded-r-lg">"Druck"</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-gray-100">
+                                        <tbody class="divide-y divide-slate-800">
                                             {log_data.data.into_iter().map(|entry| view! {
-                                                <tr class="hover:bg-gray-50/80 transition">
-                                                    <td class="py-2.5 px-3 font-mono text-xs text-gray-500 whitespace-nowrap">{format_date(entry.timestamp)}</td>
-                                                    <td class="py-2.5 px-3 font-medium text-gray-900">{entry.specs.name}</td>
+                                                <tr class="hover:bg-slate-800/60 transition">
+                                                    <td class="py-2.5 px-3 font-mono text-xs text-slate-400 whitespace-nowrap">{format_date(entry.timestamp)}</td>
+                                                    <td class="py-2.5 px-3 font-medium text-slate-100">{entry.specs.name}</td>
                                                     <td class="py-2.5 px-3 text-xs">{entry.sensor_name}</td>
                                                     <td class="py-2.5 px-3 whitespace-nowrap">
                                                         {entry.temperature.map(|t| format!("{:.2} K", t)).unwrap_or_else(|| "—".to_string())}
