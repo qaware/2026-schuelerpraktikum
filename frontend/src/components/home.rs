@@ -35,10 +35,10 @@ struct SatStatus {
 #[component]
 fn StatTile(label: &'static str, value: String, hint: String) -> impl IntoView {
     view! {
-        <div class="p-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-            <p class="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-            <p class="mt-2 text-3xl font-bold text-gray-900 tabular-nums">{value}</p>
-            <p class="mt-1 text-xs text-gray-400">{hint}</p>
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
+            <p class="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+            <p class="mt-2 text-3xl font-bold text-slate-100 tabular-nums">{value}</p>
+            <p class="mt-1 text-xs text-slate-500">{hint}</p>
         </div>
     }
 }
@@ -207,23 +207,23 @@ pub fn Home() -> impl IntoView {
                     werden erzeugt, gespeichert und hier in Echtzeit dargestellt."
                 </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                    <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                        <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">"1 · Datenerzeugung"</p>
-                        <p class="text-sm text-gray-700">
+                    <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                        <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">"1 · Datenerzeugung"</p>
+                        <p class="text-sm text-slate-300">
                             "Ein Python-Generator erzeugt Druck- und Temperaturwerte für 13 Sensoren
                             und sendet sie per HTTP POST an das Backend."
                         </p>
                     </div>
-                    <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                        <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">"2 · Backend"</p>
-                        <p class="text-sm text-gray-700">
+                    <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                        <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">"2 · Backend"</p>
+                        <p class="text-sm text-slate-300">
                             "Ein Go-Server (chi) validiert die Messwerte, legt sie in MongoDB ab und
                             stellt sie über eine REST-API bereit."
                         </p>
                     </div>
-                    <div class="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                        <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">"3 · Frontend"</p>
-                        <p class="text-sm text-gray-700">
+                    <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                        <p class="text-xs uppercase tracking-wide text-slate-400 mb-1">"3 · Frontend"</p>
+                        <p class="text-sm text-slate-300">
                             "Diese Oberfläche ist in Rust mit Leptos geschrieben und läuft als
                             WebAssembly im Browser. Sie fragt die API im Sekundentakt ab."
                         </p>
@@ -236,30 +236,30 @@ pub fn Home() -> impl IntoView {
                     tiles().into_any()
                 } else {
                     view! {
-                        <div class="col-span-full text-gray-400">"Lade Kennzahlen..."</div>
+                        <div class="col-span-full text-slate-500">"Lade Kennzahlen..."</div>
                     }.into_any()
                 }}
             </div>
 
             <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="p-6 rounded-3xl bg-white border border-gray-200 shadow-sm">
+                <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">"Flottenstatus"</h3>
-                        <a href="/dashboard" class="text-xs text-blue-600 hover:text-blue-800">"Zum Dashboard →"</a>
+                        <h3 class="text-lg font-semibold text-slate-200">"Flottenstatus"</h3>
+                        <a href="/dashboard" class="text-xs text-blue-400 hover:text-blue-300">"Zum Dashboard →"</a>
                     </div>
 
                     {move || {
                         let all = statuses();
                         if all.is_empty() {
                             return view! {
-                                <p class="text-sm text-gray-400">"Noch keine Satelliten empfangen."</p>
+                                <p class="text-sm text-slate-500">"Noch keine Satelliten empfangen."</p>
                             }.into_any();
                         }
 
                         let now = now_seconds();
 
                         view! {
-                            <div class="divide-y divide-gray-100">
+                            <div class="divide-y divide-slate-800">
                                 {all.into_iter().map(|s| {
                                     let fresh = s.last_contact
                                         .map(|t| now.saturating_sub(t) < STALE_AFTER_SECONDS)
@@ -280,8 +280,8 @@ pub fn Home() -> impl IntoView {
                                                     "w-2 h-2 rounded-full bg-amber-500 shrink-0"
                                                 }></span>
                                                 <div class="min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900 truncate">{s.name}</p>
-                                                    <p class="text-xs text-gray-500 truncate">
+                                                    <p class="text-sm font-medium text-slate-100 truncate">{s.name}</p>
+                                                    <p class="text-xs text-slate-400 truncate">
                                                         {format!("{} · {}", s.model, s.nation)}
                                                     </p>
                                                 </div>
@@ -289,12 +289,12 @@ pub fn Home() -> impl IntoView {
                                             // Hidden on the narrowest screens so the name never gets
                                             // squeezed out by the position block.
                                             <div class="hidden sm:block text-right shrink-0">
-                                                <p class="text-xs text-gray-700 truncate">{s.city}</p>
-                                                <p class="text-xs text-gray-400 tabular-nums">{height}</p>
+                                                <p class="text-xs text-slate-300 truncate">{s.city}</p>
+                                                <p class="text-xs text-slate-500 tabular-nums">{height}</p>
                                             </div>
                                             <div class="text-right shrink-0">
-                                                <p class="text-xs text-gray-700 tabular-nums">{contact}</p>
-                                                <p class="text-xs text-gray-400">
+                                                <p class="text-xs text-slate-300 tabular-nums">{contact}</p>
+                                                <p class="text-xs text-slate-500">
                                                     {format!("{} Sensoren", s.sensors_seen)}
                                                 </p>
                                             </div>
@@ -306,22 +306,22 @@ pub fn Home() -> impl IntoView {
                     }}
                 </div>
 
-                <div class="p-6 rounded-3xl bg-white border border-gray-200 shadow-sm">
+                <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">"Live-Ticker"</h3>
-                        <span class="text-xs text-gray-400">"neueste zuerst"</span>
+                        <h3 class="text-lg font-semibold text-slate-200">"Live-Ticker"</h3>
+                        <span class="text-xs text-slate-500">"neueste zuerst"</span>
                     </div>
 
                     {move || {
                         let entries = logs.get();
                         if entries.is_empty() {
                             return view! {
-                                <p class="text-sm text-gray-400">"Warte auf Daten..."</p>
+                                <p class="text-sm text-slate-500">"Warte auf Daten..."</p>
                             }.into_any();
                         }
 
                         view! {
-                            <div class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                            <div class="divide-y divide-slate-800 max-h-80 overflow-y-auto">
                                 {entries.iter().rev().take(15).map(|e| {
                                     // A tank carries only one of the two probes.
                                     let reading = match (e.temperature, e.pressure) {
@@ -334,15 +334,15 @@ pub fn Home() -> impl IntoView {
                                     view! {
                                         <div class="flex items-center justify-between gap-3 py-2">
                                             <div class="min-w-0">
-                                                <p class="text-xs font-medium text-gray-900 truncate">
+                                                <p class="text-xs font-medium text-slate-100 truncate">
                                                     {format!("{} · {}", e.specs.name, e.sensor_name)}
                                                 </p>
-                                                <p class="text-xs text-gray-400 truncate">
+                                                <p class="text-xs text-slate-500 truncate">
                                                     <span class="font-mono">{format_date(e.timestamp)}</span>
                                                     {format!(" · {} · {:.1} km", e.position.city, e.position.height)}
                                                 </p>
                                             </div>
-                                            <p class="text-xs text-gray-700 tabular-nums shrink-0">{reading}</p>
+                                            <p class="text-xs text-slate-300 tabular-nums shrink-0">{reading}</p>
                                         </div>
                                     }
                                 }).collect::<Vec<_>>()}

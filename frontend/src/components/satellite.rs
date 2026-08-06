@@ -19,9 +19,9 @@ fn now_seconds() -> u64 {
 #[component]
 fn SpecRow(label: &'static str, value: String) -> impl IntoView {
     view! {
-        <div class="flex justify-between items-baseline gap-4 py-1.5 border-b border-gray-100 last:border-b-0">
-            <dt class="text-sm text-gray-500 shrink-0">{label}</dt>
-            <dd class="text-sm font-medium text-gray-900 text-right break-all">{value}</dd>
+        <div class="flex justify-between items-baseline gap-4 py-1.5 border-b border-slate-800 last:border-b-0">
+            <dt class="text-sm text-slate-400 shrink-0">{label}</dt>
+            <dd class="text-sm font-medium text-slate-100 text-right break-all">{value}</dd>
         </div>
     }
 }
@@ -38,12 +38,12 @@ fn height_trend(entries: &[LogEntry]) -> Option<(&'static str, String, &'static 
     // Below this the change is indistinguishable from the sensor noise the
     // generator adds to every reading.
     if delta.abs() < 0.5 {
-        return Some(("→", "stabil".to_string(), "text-gray-400"));
+        return Some(("→", "stabil".to_string(), "text-slate-500"));
     }
     if delta > 0.0 {
-        Some(("↑", format!("+{:.2} km", delta), "text-emerald-600"))
+        Some(("↑", format!("+{:.2} km", delta), "text-emerald-400"))
     } else {
-        Some(("↓", format!("{:.2} km", delta), "text-amber-600"))
+        Some(("↓", format!("{:.2} km", delta), "text-amber-400"))
     }
 }
 
@@ -95,15 +95,15 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
     let alt_text = name.clone();
 
     view! {
-        <div class="my-8 w-full p-6 rounded-3xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-            <div class="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-gray-200">
+        <div class="my-8 w-full p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-slate-800">
                 <div class="p-4 min-h-48 flex justify-center items-center">
                     <img src=image alt=alt_text class="h-48 object-cover rounded-xl"/>
                 </div>
 
                 <div class="p-4 min-h-48">
                     <div class="flex items-center justify-between gap-3 mb-4">
-                        <h2 class="text-2xl font-semibold text-gray-800">{heading}</h2>
+                        <h2 class="text-2xl font-semibold text-slate-200">{heading}</h2>
                         {move || {
                             let entry = latest.get();
                             let fresh = entry
@@ -113,14 +113,14 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 
                             if fresh {
                                 view! {
-                                    <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                                    <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                         "Signal"
                                     </span>
                                 }.into_any()
                             } else {
                                 view! {
-                                    <span class="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                                    <span class="flex items-center gap-1.5 text-xs font-medium text-amber-400">
                                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                         "Kein Signal"
                                     </span>
@@ -131,7 +131,7 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 
                     {move || match detail.get() {
                         None => view! {
-                            <p class="text-sm text-gray-400">"Lade Stammdaten..."</p>
+                            <p class="text-sm text-slate-500">"Lade Stammdaten..."</p>
                         }.into_any(),
                         Some(d) => {
                             let entry = latest.get();
@@ -155,15 +155,15 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
                                     />
                                     // Spelled out instead of reusing SpecRow, because the
                                     // trend badge needs its own colour per direction.
-                                    <div class="flex justify-between items-baseline gap-4 py-1.5 border-b border-gray-100 last:border-b-0">
-                                        <dt class="text-sm text-gray-500 shrink-0">"Höhe"</dt>
+                                    <div class="flex justify-between items-baseline gap-4 py-1.5 border-b border-slate-800 last:border-b-0">
+                                        <dt class="text-sm text-slate-400 shrink-0">"Höhe"</dt>
                                         <dd class="flex items-baseline justify-end gap-2 text-right">
                                             {trend.map(|(arrow, label, color)| view! {
                                                 <span class=format!("text-xs font-medium shrink-0 {}", color)>
                                                     {format!("{} {}", arrow, label)}
                                                 </span>
                                             })}
-                                            <span class="text-sm font-medium text-gray-900 tabular-nums">
+                                            <span class="text-sm font-medium text-slate-100 tabular-nums">
                                                 {height_value}
                                             </span>
                                         </dd>
@@ -192,10 +192,10 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
                                 </dl>
 
                                 <div>
-                                    <p class="text-xs uppercase tracking-wide text-gray-500 mb-2">"Sensoren"</p>
+                                    <p class="text-xs uppercase tracking-wide text-slate-400 mb-2">"Sensoren"</p>
                                     <div class="flex flex-wrap gap-1.5">
                                         {d.sensors.iter().map(|s| view! {
-                                            <span class="px-2 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-mono">
+                                            <span class="px-2 py-1 rounded-md bg-slate-800 text-slate-300 text-xs font-mono">
                                                 {s.clone()}
                                             </span>
                                         }).collect::<Vec<_>>()}
@@ -253,20 +253,20 @@ pub fn Satellite() -> impl IntoView {
 
     view! {
         <div class="container mx-auto max-w-screen-xl px-4">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 pb-6 pt-2">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6 pt-2">
                 <div>
                     <div class="flex items-center align-center">
-                        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">"Satelliten"</h1>
+                        <h1 class="text-3xl font-bold text-slate-100 tracking-tight">"Satelliten"</h1>
                         <span class="w-2 h-2 ml-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     </div>
                 </div>
             </div>
 
             {move || (!loaded.get()).then(|| view! {
-                <p class="text-gray-400 mt-8">"Lade Satelliten..."</p>
+                <p class="text-slate-500 mt-8">"Lade Satelliten..."</p>
             })}
             {move || (loaded.get() && satellites.get().is_empty()).then(|| view! {
-                <p class="text-gray-400 mt-8">"Noch keine Satelliten empfangen."</p>
+                <p class="text-slate-500 mt-8">"Noch keine Satelliten empfangen."</p>
             })}
 
             // Keyed, so a newly appearing satellite adds one card instead of

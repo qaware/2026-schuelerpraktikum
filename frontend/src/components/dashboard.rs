@@ -286,7 +286,9 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         };
 
         let colors = ["#60a5fa", "#f87171", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"];
-        let height_color = "#0ea5e9";
+        // sky-400 rather than sky-500, to sit in the same brightness band as the
+        // sensor colours above on the dark background.
+        let height_color = "#38bdf8";
 
         // Two decimals are meaningful for pressure but would overflow the
         // tooltip for a value like JWST's 1500012.34 km.
@@ -315,7 +317,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 legend.push(view! {
                     <div class="flex items-center gap-1">
                         <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", color)></span>
-                        <span class="text-xs text-gray-600 select-none">"Bahnhöhe"</span>
+                        <span class="text-xs text-slate-400 select-none">"Bahnhöhe"</span>
                     </div>
                 }.into_any());
             } else {
@@ -488,8 +490,8 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             // control in the row.
             <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
                 <div class="space-y-1 min-w-0">
-                    <h2 class="text-sm font-bold text-gray-900 truncate">{format!("Satellit: {}", name)}</h2>
-                    <p class="text-xs text-gray-500 truncate">
+                    <h2 class="text-sm font-bold text-slate-100 truncate">{format!("Satellit: {}", name)}</h2>
+                    <p class="text-xs text-slate-400 truncate">
                         {move || chart_logs.get()
                             .iter()
                             .max_by_key(|e| e.timestamp)
@@ -539,9 +541,9 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                         on:click=move |_| set_selected_metric.set("height".to_string())
                         title="Bahnhöhe"
                         class=move || if selected_metric.get() == "height" {
-                            "px-2 py-1.5 rounded-md bg-white text-gray-900 shadow-sm font-semibold"
+                            "px-2 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
                         } else {
-                            "px-2 py-1.5 text-gray-600 hover:text-gray-900 transition"
+                            "px-2 py-1.5 text-slate-400 hover:text-slate-100 transition"
                         }
                     >
                         "Höhe"
@@ -549,7 +551,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 </div>
                     <button
                         on:click=move |_| set_expanded.update(|e| *e = !*e)
-                        class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm leading-none font-medium hover:bg-gray-200 transition cursor-pointer shrink-0"
+                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-sm leading-none font-medium hover:bg-slate-700 transition cursor-pointer shrink-0"
                         title=move || if expanded.get() { "Verkleinern" } else { "Vergrößern" }
                     >
                         {move || if expanded.get() { "⤡" } else { "⤢" }}
