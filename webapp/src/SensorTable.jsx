@@ -6,6 +6,14 @@ function formatNumber(value) {
     return Number(value).toFixed(2);
 }
 
+/* Sortiert nach Namen, wobei Zahlen als Zahlen verglichen werden.
+   Dadurch kommt thruster_2.a vor thruster_10.a und nicht danach. */
+function sortByName(sensors) {
+    return [...sensors].sort((a, b) =>
+        a.name.localeCompare(b.name, "de", { numeric: true })
+    );
+}
+
 function SensorSection({ title, sensors }) {
     return (
         <section className="sensor-section">
@@ -50,9 +58,9 @@ function SensorTable() {
             const response = await fetch("http://127.0.0.1:8000/data/");
             const json = await response.json();
 
-            setThrusterData(json.filter((item) => item.type === "thruster"));
-            setOxygenTankData(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("o")));
-            setHydrogenTankData(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("h")));
+            setThrusterData(sortByName(json.filter((item) => item.type === "thruster")));
+            setOxygenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
+            setHydrogenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
         };
         fetchData();
     }, []);
