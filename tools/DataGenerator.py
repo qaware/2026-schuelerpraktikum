@@ -60,7 +60,7 @@ class DataGenerator:
             pressure = random.uniform(1473829.123, 3847530.283)
             temperature = random.uniform(-220, -100)
         else:
-            pressure = random.uniform(0.2, 0.5)
+            pressure = random.uniform(0.5, 9.0)
             temperature = random.uniform(200.0, 500.0)
         if result==3:
             sensor_data = Sensor(
@@ -114,4 +114,3 @@ if __name__ == '__main__':
         count=Counter(list1)
         time.sleep(3)
     print(count)
-  
