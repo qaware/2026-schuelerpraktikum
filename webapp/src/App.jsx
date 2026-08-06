@@ -6,9 +6,9 @@ function App() {
   return (
     <div>
       <h1>Satelliten Daten</h1>
+      <Suche />
       <h2 className="text_left" >Thruster</h2>
       <SensorTable />
-      <Suche />
     </div>
   );
 }

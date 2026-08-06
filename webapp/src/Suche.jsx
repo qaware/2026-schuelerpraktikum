@@ -4,14 +4,29 @@ import "./stylesheet.css";
 export default function Suche() {
   const [suchbegriff, setSuchbegriff] = useState('');
   const [istOffen, setIstOffen] = useState(false);
+  const [data, setData] = useState([]); // Start with an empty array
 
-  const daten = [
-    { id: 1, name: "thruster_3.b", pressure: "8.53 bar", temperature: "413.2 °C" },
-    { id: 2, name: "thruster_3.c", pressure: "1.94 bar", temperature: "491.7 °C" },
-    { id: 3, name: "bodenstation", pressure: "0.00 bar", temperature: "22.0 °C" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/data/");
 
-  const gefilterteDaten = daten.filter((item) =>
+        if (!response.ok) {
+          throw new Error("Fehler beim Laden der Daten");
+        }
+
+        const json = await response.json();
+        console.log(json);
+        setData(json);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const gefilterteDaten = data.filter((item) =>
     item.name.toLowerCase().includes(suchbegriff.toLowerCase())
   );
 
