@@ -108,6 +108,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 
     let (hovered_point, set_hovered_point) = signal(None::<(f64, f64, String, String, String)>);
     let (viewport_size, set_viewport_size) = signal(25usize);
+    let (expanded, set_expanded) = signal(false);
 
     // Without this the polling loop outlives the component: every visit to
     // /dashboard would leave another one running forever.
@@ -213,9 +214,19 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         let padded_max_val = max_val + y_padding_val;
         let padded_range = padded_max_val - padded_min_val;
 
-        let width = 600.0;
-        let height = 220.0;
-        let padding = 40.0;
+        // The viewBox grows with the card. preserveAspectRatio="none" stretches
+        // everything inside it, so keeping the coordinate system proportional to
+        // the rendered size is what stops labels and markers from ballooning
+        // when the card is expanded.
+        let is_expanded = expanded.get();
+        let (width, height, padding) = if is_expanded {
+            (1200.0, 460.0, 55.0)
+        } else {
+            (600.0, 220.0, 40.0)
+        };
+        let dot_r = if is_expanded { 4.0 } else { 3.5 };
+        let hit_r = if is_expanded { 12.0 } else { 10.0 };
+        let x_ticks: u64 = if is_expanded { 8 } else { 4 };
 
         let get_x = |ts: u64| {
             let normalized = (ts as f64 - min_ts as f64) / (max_ts as f64 - min_ts as f64);
@@ -306,8 +317,8 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                         on:mouseleave=move |_| set_hovered_point.set(None)
                         class="cursor-pointer"
                     >
-                        <circle cx=x cy=y r="10" fill="transparent" />
-                        <circle cx=x cy=y r="3.5" fill=color class="transition-all hover:opacity-80" />
+                        <circle cx=x cy=y r=hit_r fill="transparent" />
+                        <circle cx=x cy=y r=dot_r fill=color class="transition-all hover:opacity-80" />
                     </g>
                 }.into_any());
             }
@@ -317,10 +328,10 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             }.into_any());
         }
 
-        let step = (max_ts - min_ts) / 4;
+        let step = (max_ts - min_ts) / x_ticks;
         let mut x_axis_labels = Vec::new();
         if step > 0 {
-            for i in 0..=4 {
+            for i in 0..=x_ticks {
                 let ts = min_ts + i * step;
                 let x = get_x(ts);
                 x_axis_labels.push(view! {
@@ -384,7 +395,14 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
     };
 
     view! {
-        <div class="p-5 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col relative overflow-hidden h-[340px]">
+        // Both class variants are spelled out as whole literals so Tailwind's
+        // source scanner can find them; building them by concatenation would
+        // leave the utilities out of the generated stylesheet.
+        <div class=move || if expanded.get() {
+            "p-5 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col relative overflow-hidden transition-all col-span-full h-[620px]"
+        } else {
+            "p-5 rounded-2xl bg-white border border-gray-200 shadow-sm flex flex-col relative overflow-hidden transition-all h-[340px]"
+        }>
 
 
             <div class="flex items-center justify-between mb-4">
@@ -428,6 +446,13 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                         "Druck"
                     </button>
                 </div>
+                    <button
+                        on:click=move |_| set_expanded.update(|e| *e = !*e)
+                        class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm leading-none font-medium hover:bg-gray-200 transition cursor-pointer"
+                        title=move || if expanded.get() { "Verkleinern" } else { "Vergrößern" }
+                    >
+                        {move || if expanded.get() { "⤡" } else { "⤢" }}
+                    </button>
                 </div>
             </div>
             <div class="flex-1 w-full h-full min-h-0 rounded-xl relative">
@@ -450,13 +475,40 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 pub fn Dashboard() -> impl IntoView {
     let (logs, set_logs) = signal(None::<SatelliteLogResponse>);
     let (anzahl_empfangen, set_anzahl_empfangen) = signal(0usize);
-
-    let satellites = LocalResource::new(|| async move { fetch_satellites().await.unwrap_or_default() });
+    let (satellites, set_satellites) = signal(Vec::<String>::new());
+    let (sat_loaded, set_sat_loaded) = signal(false);
 
     let alive = Arc::new(AtomicBool::new(true));
     let cleanup_flag = alive.clone();
     on_cleanup(move || cleanup_flag.store(false, Ordering::Relaxed));
 
+    // The satellite list must be polled rather than fetched once: a satellite
+    // only appears in /satellites after its first measurement reaches the
+    // database, and they do not all arrive in the same second.
+    let alive_sats = alive.clone();
+    spawn_local(async move {
+        loop {
+            if !alive_sats.load(Ordering::Relaxed) {
+                break;
+            }
+
+            if let Ok(names) = fetch_satellites().await {
+                if !alive_sats.load(Ordering::Relaxed) {
+                    break;
+                }
+                set_sat_loaded.set(true);
+                // Only publish real changes, otherwise every poll would churn
+                // the chart grid.
+                if names != satellites.get_untracked() {
+                    set_satellites.set(names);
+                }
+            }
+
+            TimeoutFuture::new(5000).await;
+        }
+    });
+
+    let alive = alive.clone();
     spawn_local(async move {
         // Consecutive polls overlap heavily, so count distinct measurements
         // instead of adding the response size every time.

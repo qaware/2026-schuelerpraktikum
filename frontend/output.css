@@ -274,6 +274,9 @@
   .h-\[340px\] {
     height: 340px;
   }
+  .h-\[620px\] {
+    height: 620px;
+  }
   .h-full {
     height: 100%;
   }
@@ -517,6 +520,10 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
+  .leading-none {
+    --tw-leading: 1;
+    line-height: 1;
+  }
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
     line-height: var(--leading-relaxed);
@@ -567,6 +574,9 @@
   .uppercase {
     text-transform: uppercase;
   }
+  .opacity-25 {
+    opacity: 25%;
+  }
   .opacity-40 {
     opacity: 40%;
   }
@@ -607,6 +617,9 @@
       .hover\:bg-gray-50\/80:hover {
         background-color: color-mix(in oklab, var(--color-gray-50) 80%, transparent);
       }
+    }
+    .hover\:bg-gray-200:hover {
+      background-color: var(--color-gray-200);
     }
     .hover\:text-blue-300:hover {
       color: var(--color-blue-300);
