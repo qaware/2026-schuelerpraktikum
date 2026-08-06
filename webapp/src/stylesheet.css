@@ -1,24 +1,89 @@
-table {
-    
-    margin: 0px auto;
-    border-collapse: collapse; 
-    width: 80%;
-    
+.sensor-section {
+    margin: 0 auto 48px;
+    width: 90%;
 }
 
-th, td {
-    border-right: 2px solid #949393;
-    border-left: 2px solid #949393;
-    border-bottom: 2px solid #949393;
-    padding: 10px 70px 10px 70px;
-    
-}
-
-h2{
+.sensor-section h2 {
     text-align: left;
-    padding: 30px 0px 30px 30px;
-    font-size: 30px;
+    margin: 0 0 12px 4px;
+    font-size: 22px;
     font-weight: 700;
+}
+
+/* Der Wrapper sorgt fuer die runden Ecken und den Schatten */
+.table-wrapper {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    background: var(--bg);
+}
+
+thead th {
+    background: var(--accent-bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--accent-border);
+}
+
+tbody td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Letzte Zeile ohne Trennlinie, damit die runde Ecke sauber bleibt */
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Zebra-Streifen */
+tbody tr:nth-child(even) {
+    background: var(--social-bg);
+}
+
+tbody tr:hover {
+    background: var(--accent-bg);
+}
+
+/* Zahlenspalten: rechtsbuendig und mit gleich breiten Ziffern */
+.num {
+    text-align: right !important;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.empty {
+    text-align: center !important;
+    padding: 24px;
+    opacity: 0.6;
+    font-style: italic;
+}
+
+@media (max-width: 1024px) {
+    .sensor-section {
+        width: 100%;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    thead th,
+    tbody td {
+        padding: 10px 12px;
+    }
 }
 
 .search-container {
