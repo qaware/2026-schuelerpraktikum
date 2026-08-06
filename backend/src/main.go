@@ -10,10 +10,18 @@ import (
 	"time"
 )
 
+// env returns the value of key, or fallback when it is unset or empty.
+func env(key string, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
 func main() {
 
 	ctx := context.Background()
-	mongo_uri := "mongodb://root:password@localhost:27017"
+	mongo_uri := env("MONGO_URI", "mongodb://root:password@localhost:27017")
 
 	mongoClient, err := startDB(ctx, mongo_uri)
 	if err != nil {
@@ -36,7 +44,7 @@ func main() {
 	}
 
 	cfg := config{
-		addr: ":8585",
+		addr: env("ADDR", ":8585"),
 	}
 	api := api{
 		config: cfg,

@@ -10,11 +10,29 @@ services:
     ports:
       - 27017:27017
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_URI: mongodb://root:password@mongodb:27017
+      ADDR: ":8585"
+    ports:
+      - 8585:8585
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frontend
     restart: unless-stopped
+    # nginx resolves the "backend" upstream when it loads its config, so that
+    # container has to exist first or nginx exits with "host not found".
+    depends_on:
+      - backend
     ports:
       - 8686:80

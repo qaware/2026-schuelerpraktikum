@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -16,8 +17,8 @@ func startDB(ctx context.Context, uri string) (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	pingCtx, cancel := context.WithTimeout(ctx, time.Second * 10)
+
+	pingCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
 	if err := client.Ping(pingCtx, nil); err != nil {
 		return nil, err
@@ -32,7 +33,7 @@ type store struct {
 }
 
 func newStore(client *mongo.Client) *store {
-	collection := client.Database("pizza_party").Collection("satellite_data") 
+	collection := client.Database("pizza_party").Collection("satellite_data")
 	return &store{collection: collection}
 }
 
@@ -66,13 +67,25 @@ func (store *store) listSatellites(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Strings(satellites)
 	return satellites, nil
+}
+
+func (store *store) listAllSensors(ctx context.Context) ([]string, error) {
+	var sensors []string
+
+	err := store.collection.Distinct(ctx, "sensor_name", bson.D{}).Decode(&sensors)
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(sensors)
+	return sensors, nil
 }
 
 func (store *store) listSpecs(ctx context.Context, satellite_name string) (*Specs, error) {
 	opts := options.FindOne().
-	SetSort(bson.D{{Key: "time", Value: -1}}).
-	SetProjection(bson.D{{Key: "specs", Value: 1}, {Key: "_id", Value: 0}})
+		SetSort(bson.D{{Key: "time", Value: -1}}).
+		SetProjection(bson.D{{Key: "specs", Value: 1}, {Key: "_id", Value: 0}})
 
 	var result struct {
 		Specs Specs `bson:"specs"`
@@ -90,8 +103,8 @@ func (store *store) listSpecs(ctx context.Context, satellite_name string) (*Spec
 
 func (store *store) listNLogs(ctx context.Context, n int64) ([]SatelliteResponse, error) {
 	opts := options.Find().
-	SetSort(bson.D{{Key: "time", Value: -1}}).
-	SetLimit(n)
+		SetSort(bson.D{{Key: "time", Value: -1}}).
+		SetLimit(n)
 
 	cursor, err := store.collection.Find(ctx, bson.D{}, opts)
 	if err != nil {
@@ -106,10 +119,28 @@ func (store *store) listNLogs(ctx context.Context, n int64) ([]SatelliteResponse
 	}
 	return logs, nil
 }
+func (store *store) listSatelliteLogs(ctx context.Context, satellite_name string, n int64) ([]SatelliteResponse, error) {
+	opts := options.Find().
+		SetSort(bson.D{{Key: "time", Value: -1}}).
+		SetLimit(n)
+
+	cursor, err := store.collection.Find(ctx, bson.D{{Key: "satellite_name", Value: satellite_name}}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var logs []SatelliteResponse
+
+	if err := cursor.All(ctx, &logs); err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
 func (store *store) listSensorLogs(ctx context.Context, satellite_name string, sensor_name string, n int64) ([]SatelliteResponse, error) {
 	opts := options.Find().
-	SetSort(bson.D{{Key: "time", Value: -1}}).
-	SetLimit(n)
+		SetSort(bson.D{{Key: "time", Value: -1}}).
+		SetLimit(n)
 
 	filter := bson.D{
 		{Key: "satellite_name", Value: satellite_name},

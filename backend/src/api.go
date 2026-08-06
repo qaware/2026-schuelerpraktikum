@@ -10,7 +10,7 @@ import (
 
 type api struct {
 	config config
-	store *store
+	store  *store
 }
 type config struct {
 	addr string
@@ -26,9 +26,13 @@ func (api *api) mount() http.Handler {
 
 	r.Post("/data", api.ingestHandler)
 
+	// chi matches static segments ahead of {params}, so /satellites/log and
+	// /satellites/sensors win over /satellites/{name} regardless of order.
 	r.Get("/satellites", api.listSatellitesHandler)
-	r.Get("/satellites/{name}", api.listSpecsHandler)
 	r.Get("/satellites/log", api.listNLogsHandler)
+	r.Get("/satellites/sensors", api.listAllSensorsHandler)
+	r.Get("/satellites/{name}", api.listSpecsHandler)
+	r.Get("/satellites/{name}/log", api.listSatelliteLogsHandler)
 	r.Get("/satellites/{name}/sensors", api.listSensorsHandler)
 	r.Get("/satellites/{name}/sensors/{sensor_name}", api.listSensorLogsHandler)
 
@@ -37,7 +41,7 @@ func (api *api) mount() http.Handler {
 
 func (api *api) run(mux http.Handler) error {
 	srv := &http.Server{
-		Addr: api.config.addr,
+		Addr:    api.config.addr,
 		Handler: mux,
 	}
 

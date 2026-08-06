@@ -13,6 +13,16 @@ open = false
 [clean]
 dist = "dist"
 
+# Forward API calls to the backend so the browser only ever talks to the Trunk
+# origin. Each entry mounts at the path of its backend URL, so they have to be
+# listed per prefix -- a bare "http://localhost:8585" would mount at / and
+# swallow the app itself.
+[[proxy]]
+backend = "http://localhost:8585/satellites"
+
+[[proxy]]
+backend = "http://localhost:8585/data"
+
 [[hooks]]
 stage = "pre_build"
 command = "npx"

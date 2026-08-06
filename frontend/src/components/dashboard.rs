@@ -5,6 +5,14 @@ use leptos::task::spawn_local;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
+// Empty on purpose: requests go to the page's own origin and are forwarded to
+// the backend by nginx (Docker) or by Trunk's [[proxy]] (dev). Pointing this at
+// http://localhost:8585 directly would be a cross-origin request, which the
+// browser blocks because the backend sends no CORS headers.
+const API_BASE: &str = "";
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SatelliteLogResponse {
@@ -15,8 +23,9 @@ pub struct SatelliteLogResponse {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LogEntry {
     pub sensor_name: String,
-    pub pressure: f64,
-    pub temperature: f64,
+    // Tanks only carry one of the two probes, so either value can be absent.
+    pub pressure: Option<f64>,
+    pub temperature: Option<f64>,
     pub position: Position,
     pub specs: Specs,
     pub timestamp: u64,
@@ -33,12 +42,21 @@ pub struct Specs {
     pub name: String,
     pub model: String,
     pub launch_date: String,
-    pub sensors: String,
+    pub sensors: Vec<String>,
     pub nation: String,
 }
 
 pub async fn fetch_logs(amount: usize) -> Result<SatelliteLogResponse, gloo_net::Error> {
-    let url = format!("http://localhost:8000/satellites/log?amount={}", amount);
+    let url = format!("{}/satellites/log?amount={}", API_BASE, amount);
+    Request::get(&url)
+        .send()
+        .await?
+        .json::<SatelliteLogResponse>()
+        .await
+}
+
+pub async fn fetch_satellite_logs(name: &str, amount: usize) -> Result<SatelliteLogResponse, gloo_net::Error> {
+    let url = format!("{}/satellites/{}/log?amount={}", API_BASE, name, amount);
     Request::get(&url)
         .send()
         .await?
@@ -57,7 +75,8 @@ pub async fn fetch_satellites() -> Result<Vec<String>, gloo_net::Error> {
     struct SatRes {
         names: Vec<String>,
     }
-    let res: SatRes = Request::get("http://localhost:8000/satellites")
+    let url = format!("{}/satellites", API_BASE);
+    let res: SatRes = Request::get(&url)
         .send()
         .await?
         .json()
@@ -70,7 +89,7 @@ pub async fn fetch_sensors(name: &str) -> Result<Vec<String>, gloo_net::Error> {
     struct SensorRes {
         sensor_names: Vec<String>,
     }
-    let url = format!("http://localhost:8000/satellites/{}/sensors", name);
+    let url = format!("{}/satellites/{}/sensors", API_BASE, name);
     let res: SensorRes = Request::get(&url).send().await?.json().await?;
     Ok(res.sensor_names)
 }
@@ -90,30 +109,40 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
     let (hovered_point, set_hovered_point) = signal(None::<(f64, f64, String, String, String)>);
     let (viewport_size, set_viewport_size) = signal(25usize);
 
+    // Without this the polling loop outlives the component: every visit to
+    // /dashboard would leave another one running forever.
+    let alive = Arc::new(AtomicBool::new(true));
+    let cleanup_flag = alive.clone();
+    on_cleanup(move || cleanup_flag.store(false, Ordering::Relaxed));
+
     let name_clone2 = name.clone();
     spawn_local(async move {
         let name = name_clone2;
-        let mut known_sensors: Vec<String> = Vec::new();
+        let mut sensor_count = 0usize;
+
         loop {
-            if known_sensors.is_empty() {
+            if !alive.load(Ordering::Relaxed) {
+                break;
+            }
+
+            if sensor_count == 0 {
                 if let Ok(s) = fetch_sensors(&name).await {
-                    known_sensors = s;
+                    sensor_count = s.len();
                 }
             }
 
-            if !known_sensors.is_empty() {
-                let mut all_logs = Vec::new();
-                for sensor in &known_sensors {
-                    let amount = viewport_size.get();
-                    let url = format!("http://localhost:8000/satellites/{}/sensors/{}?amount={}", name, sensor, amount);
-                    if let Ok(res) = Request::get(&url).send().await {
-                        if let Ok(data) = res.json::<SatelliteLogResponse>().await {
-                            all_logs.extend(data.data);
-                        }
+            if sensor_count > 0 {
+                // The endpoint caps total rows, not rows per sensor, so scale
+                // the request by how many sensors share that budget.
+                let amount = viewport_size.get_untracked() * sensor_count;
+                if let Ok(data) = fetch_satellite_logs(&name, amount).await {
+                    if !alive.load(Ordering::Relaxed) {
+                        break;
                     }
+                    set_chart_logs.set(data.data);
                 }
-                set_chart_logs.set(all_logs);
             }
+
             TimeoutFuture::new(2000).await;
         }
     });
@@ -134,7 +163,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         }
 
         let metric = selected_metric.get();
-        let get_val = |e: &LogEntry| {
+        let get_val = |e: &LogEntry| -> Option<f64> {
             if metric == "temperature" { e.temperature } else { e.pressure }
         };
         let deselected = deselected_sensors.get();
@@ -155,7 +184,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 
         for entry in &logs {
             if deselected.contains(&entry.sensor_name) { continue; }
-            let val = get_val(entry);
+            let Some(val) = get_val(entry) else { continue; };
             if val < min_val { min_val = val; }
             if val > max_val { max_val = val; }
             if entry.timestamp < min_ts { min_ts = entry.timestamp; }
@@ -210,6 +239,9 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             let data = &grouped[sensor_name];
             let color = colors[i % colors.len()];
             let is_active = !deselected.contains(sensor_name);
+            // A tank reports only one of the two metrics, so it has nothing to
+            // draw on the other tab.
+            let has_data = data.iter().any(|e| get_val(e).is_some());
 
             let sensor_clone = sensor_name.clone();
             let toggle_sensor = move |_| {
@@ -222,28 +254,46 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                 });
             };
 
+            let opacity = if !has_data {
+                "opacity-25"
+            } else if is_active {
+                "opacity-100"
+            } else {
+                "opacity-40"
+            };
+
             legend.push(view! {
                 <div
-                    class=format!("flex items-center gap-1 cursor-pointer transition-opacity {}", if is_active { "opacity-100" } else { "opacity-40" })
+                    class=format!("flex items-center gap-1 cursor-pointer transition-opacity {}", opacity)
                     on:click=toggle_sensor
+                    title=if has_data { String::new() } else { "Kein Messwert für diese Metrik".to_string() }
                 >
-                    <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active { color } else { "#9ca3af" })></span>
+                    <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active && has_data { color } else { "#9ca3af" })></span>
                     <span class="text-xs text-gray-600 hover:text-gray-900 select-none">{sensor_name.clone()}</span>
                 </div>
             });
 
-            if !is_active || data.is_empty() { continue; }
+            if !is_active || !has_data || data.is_empty() { continue; }
 
             let mut d = String::new();
-            for (j, entry) in data.iter().enumerate() {
+            // Gaps in the series must break the line rather than connect across
+            // a missing reading.
+            let mut pen_down = false;
+
+            for entry in data.iter() {
+                let Some(val) = get_val(entry) else {
+                    pen_down = false;
+                    continue;
+                };
+
                 let x = get_x(entry.timestamp);
-                let val = get_val(entry);
                 let y = get_y(val);
 
-                if j == 0 {
-                    d.push_str(&format!("M {:.1} {:.1}", x, y));
-                } else {
+                if pen_down {
                     d.push_str(&format!(" L {:.1} {:.1}", x, y));
+                } else {
+                    d.push_str(&format!(" M {:.1} {:.1}", x, y));
+                    pen_down = true;
                 }
 
                 let val_str = format!("{:.2}", val);
@@ -293,7 +343,7 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             view! { <text x={padding - 5.0} y={get_y(padded_min_val) + 4.0} text-anchor="end" font-size="10" fill="#6b7280">{format!("{:.1}", padded_min_val)}</text> },
         ];
 
-        let unit_suffix = if metric == "temperature" { "°C" } else { "Bar" };
+        let unit_suffix = if metric == "temperature" { "K" } else { "Bar" };
 
         let tooltip = move || {
             hovered_point.get().map(|(x, y, val_str, sensor_name, time_str)| {
@@ -399,20 +449,37 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 #[component]
 pub fn Dashboard() -> impl IntoView {
     let (logs, set_logs) = signal(None::<SatelliteLogResponse>);
-    let (anzahl_empfangen, set_anzahl_empfangen) = signal(0);
+    let (anzahl_empfangen, set_anzahl_empfangen) = signal(0usize);
 
     let satellites = LocalResource::new(|| async move { fetch_satellites().await.unwrap_or_default() });
 
-    Effect::new(move |_| {
-        spawn_local(async move {
-            loop {
-                if let Ok(data) = fetch_logs(15).await {
-                    set_logs.set(Some(data.clone()));
-                    set_anzahl_empfangen.update(|n| *n += data.amount);
-                }
-                TimeoutFuture::new(3000).await;
+    let alive = Arc::new(AtomicBool::new(true));
+    let cleanup_flag = alive.clone();
+    on_cleanup(move || cleanup_flag.store(false, Ordering::Relaxed));
+
+    spawn_local(async move {
+        // Consecutive polls overlap heavily, so count distinct measurements
+        // instead of adding the response size every time.
+        let mut seen: HashSet<(String, String, u64)> = HashSet::new();
+
+        loop {
+            if !alive.load(Ordering::Relaxed) {
+                break;
             }
-        });
+
+            if let Ok(data) = fetch_logs(15).await {
+                if !alive.load(Ordering::Relaxed) {
+                    break;
+                }
+                for entry in &data.data {
+                    seen.insert((entry.specs.name.clone(), entry.sensor_name.clone(), entry.timestamp));
+                }
+                set_anzahl_empfangen.set(seen.len());
+                set_logs.set(Some(data));
+            }
+
+            TimeoutFuture::new(3000).await;
+        }
     });
 
     view! {
@@ -431,6 +498,7 @@ pub fn Dashboard() -> impl IntoView {
                     <Suspense fallback=move || view!{ <div class="col-span-full text-gray-400">"Lade Satelliten..."</div> }>
                         {move || match satellites.get() {
                             None => view! { <div>"Warte..."</div> }.into_any(),
+                            Some(sats) if sats.is_empty() => view! { <div class="col-span-full text-gray-400">"Noch keine Satelliten empfangen."</div> }.into_any(),
                             Some(sats) => sats.into_iter().map(|s| {
                                 view! { <SatelliteChart name=s /> }
                             }).collect_view().into_any()
@@ -451,7 +519,8 @@ pub fn Dashboard() -> impl IntoView {
                                                 <th class="py-2.5 px-3 rounded-l-lg">"Zeitstempel"</th>
                                                 <th class="py-2.5 px-3">"Satellit"</th>
                                                 <th class="py-2.5 px-3">"Sensor"</th>
-                                                <th class="py-2.5 px-3 rounded-r-lg">"Temperatur"</th>
+                                                <th class="py-2.5 px-3">"Temperatur"</th>
+                                                <th class="py-2.5 px-3 rounded-r-lg">"Druck"</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100">
@@ -460,7 +529,12 @@ pub fn Dashboard() -> impl IntoView {
                                                     <td class="py-2.5 px-3 font-mono text-xs text-gray-500 whitespace-nowrap">{format_date(entry.timestamp)}</td>
                                                     <td class="py-2.5 px-3 font-medium text-gray-900">{entry.specs.name}</td>
                                                     <td class="py-2.5 px-3 text-xs">{entry.sensor_name}</td>
-                                                    <td class="py-2.5 px-3 whitespace-nowrap">{format!("{:.2} °C", entry.temperature)}</td>
+                                                    <td class="py-2.5 px-3 whitespace-nowrap">
+                                                        {entry.temperature.map(|t| format!("{:.2} K", t)).unwrap_or_else(|| "—".to_string())}
+                                                    </td>
+                                                    <td class="py-2.5 px-3 whitespace-nowrap">
+                                                        {entry.pressure.map(|p| format!("{:.2} Bar", p)).unwrap_or_else(|| "—".to_string())}
+                                                    </td>
                                                 </tr>
                                             }).collect::<Vec<_>>()}
                                         </tbody>

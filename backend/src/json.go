@@ -19,8 +19,14 @@ func readAndDecode(r io.Reader) (SatelliteResponse, error) {
 	if data.Specs.Name == "" {
 		return SatelliteResponse{}, errors.New("satellite name is required")
 	}
+	if data.SensorName == "" {
+		return SatelliteResponse{}, errors.New("sensor name is required")
+	}
 	if data.Time == 0 {
-		return SatelliteResponse{}, errors.New("time is required")
+		return SatelliteResponse{}, errors.New("timestamp is required")
+	}
+	if data.Temperature == nil && data.Pressure == nil {
+		return SatelliteResponse{}, errors.New("at least one of temperature or pressure is required")
 	}
 
 	data.SatelliteName = data.Specs.Name
