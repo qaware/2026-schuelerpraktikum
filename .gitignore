@@ -5,3 +5,4 @@
 !frontend/package.json
 !frontend/package-lock.json
 /__pycache__
+.env
