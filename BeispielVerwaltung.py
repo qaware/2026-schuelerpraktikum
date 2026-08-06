@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+from fastapi.middleware.cors import CORSMiddleware
 import motor.motor_asyncio
 from fastapi import FastAPI, HTTPException, status
 from pymongo.errors import PyMongoError
