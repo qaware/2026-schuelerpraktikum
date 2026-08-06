@@ -64,7 +64,28 @@ pub async fn fetch_satellite_logs(name: &str, amount: usize) -> Result<Satellite
         .await
 }
 
-fn format_date(timestamp_sec: u64) -> String {
+/// Static description of a satellite, from GET /satellites/{name}. Note the
+/// backend spells this field `launchdate`, unlike `launch_date` inside a log
+/// entry's specs.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SatelliteDetail {
+    pub name: String,
+    pub model: String,
+    pub launchdate: String,
+    pub sensors: Vec<String>,
+    pub nation: String,
+}
+
+pub async fn fetch_satellite_detail(name: &str) -> Result<SatelliteDetail, gloo_net::Error> {
+    let url = format!("{}/satellites/{}", API_BASE, name);
+    Request::get(&url)
+        .send()
+        .await?
+        .json::<SatelliteDetail>()
+        .await
+}
+
+pub fn format_date(timestamp_sec: u64) -> String {
     let ms = (timestamp_sec * 1000) as f64;
     let date = js_sys::Date::new(&JsValue::from_f64(ms));
     date.to_locale_string("de-DE", &JsValue::UNDEFINED).into()
@@ -109,6 +130,10 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
     let (hovered_point, set_hovered_point) = signal(None::<(f64, f64, String, String, String)>);
     let (viewport_size, set_viewport_size) = signal(25usize);
     let (expanded, set_expanded) = signal(false);
+
+    // Used as the series label when the height metric is selected, since that
+    // value describes the satellite rather than any single sensor.
+    let chart_name = name.clone();
 
     // Without this the polling loop outlives the component: every visit to
     // /dashboard would leave another one running forever.
@@ -164,14 +189,32 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         }
 
         let metric = selected_metric.get();
+        // Height is a property of the satellite, not of one sensor: every sensor
+        // repeats the same value, so it is drawn as one series and duplicate
+        // timestamps are dropped instead of stacking identical lines.
+        let is_height = metric == "height";
         let get_val = |e: &LogEntry| -> Option<f64> {
-            if metric == "temperature" { e.temperature } else { e.pressure }
+            match metric.as_str() {
+                "temperature" => e.temperature,
+                "pressure" => e.pressure,
+                _ => Some(e.position.height),
+            }
         };
         let deselected = deselected_sensors.get();
 
         let mut grouped: HashMap<String, Vec<LogEntry>> = HashMap::new();
-        for entry in &logs {
-            grouped.entry(entry.sensor_name.clone()).or_default().push(entry.clone());
+        if is_height {
+            let series = grouped.entry(chart_name.clone()).or_default();
+            let mut seen_ts = HashSet::new();
+            for entry in &logs {
+                if seen_ts.insert(entry.timestamp) {
+                    series.push(entry.clone());
+                }
+            }
+        } else {
+            for entry in &logs {
+                grouped.entry(entry.sensor_name.clone()).or_default().push(entry.clone());
+            }
         }
 
         for (_, data) in grouped.iter_mut() {
@@ -183,13 +226,17 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         let mut min_ts = u64::MAX;
         let mut max_ts = u64::MIN;
 
-        for entry in &logs {
-            if deselected.contains(&entry.sensor_name) { continue; }
-            let Some(val) = get_val(entry) else { continue; };
-            if val < min_val { min_val = val; }
-            if val > max_val { max_val = val; }
-            if entry.timestamp < min_ts { min_ts = entry.timestamp; }
-            if entry.timestamp > max_ts { max_ts = entry.timestamp; }
+        // Scaled from the grouped series rather than the raw log, so the height
+        // view is bounded by the deduplicated points it actually draws.
+        for (key, data) in grouped.iter() {
+            if !is_height && deselected.contains(key) { continue; }
+            for entry in data {
+                let Some(val) = get_val(entry) else { continue; };
+                if val < min_val { min_val = val; }
+                if val > max_val { max_val = val; }
+                if entry.timestamp < min_ts { min_ts = entry.timestamp; }
+                if entry.timestamp > max_ts { max_ts = entry.timestamp; }
+            }
         }
 
         if min_val == f64::INFINITY {
@@ -239,6 +286,15 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         };
 
         let colors = ["#60a5fa", "#f87171", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"];
+        let height_color = "#0ea5e9";
+
+        // Two decimals are meaningful for pressure but would overflow the
+        // tooltip for a value like JWST's 1500012.34 km.
+        let fmt_value = |v: f64| if v.abs() >= 10000.0 {
+            format!("{:.0}", v)
+        } else {
+            format!("{:.2}", v)
+        };
 
         let mut paths = Vec::new();
         let mut legend = Vec::new();
@@ -248,41 +304,51 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
 
         for (i, sensor_name) in sensor_names.iter().enumerate() {
             let data = &grouped[sensor_name];
-            let color = colors[i % colors.len()];
-            let is_active = !deselected.contains(sensor_name);
+            let color = if is_height { height_color } else { colors[i % colors.len()] };
+            // The single height series has nothing to toggle against.
+            let is_active = is_height || !deselected.contains(sensor_name);
             // A tank reports only one of the two metrics, so it has nothing to
             // draw on the other tab.
             let has_data = data.iter().any(|e| get_val(e).is_some());
 
-            let sensor_clone = sensor_name.clone();
-            let toggle_sensor = move |_| {
-                set_deselected_sensors.update(|set| {
-                    if set.contains(&sensor_clone) {
-                        set.remove(&sensor_clone);
-                    } else {
-                        set.insert(sensor_clone.clone());
-                    }
-                });
-            };
-
-            let opacity = if !has_data {
-                "opacity-25"
-            } else if is_active {
-                "opacity-100"
+            if is_height {
+                legend.push(view! {
+                    <div class="flex items-center gap-1">
+                        <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", color)></span>
+                        <span class="text-xs text-gray-600 select-none">"Bahnhöhe"</span>
+                    </div>
+                }.into_any());
             } else {
-                "opacity-40"
-            };
+                let sensor_clone = sensor_name.clone();
+                let toggle_sensor = move |_| {
+                    set_deselected_sensors.update(|set| {
+                        if set.contains(&sensor_clone) {
+                            set.remove(&sensor_clone);
+                        } else {
+                            set.insert(sensor_clone.clone());
+                        }
+                    });
+                };
 
-            legend.push(view! {
-                <div
-                    class=format!("flex items-center gap-1 cursor-pointer transition-opacity {}", opacity)
-                    on:click=toggle_sensor
-                    title=if has_data { String::new() } else { "Kein Messwert für diese Metrik".to_string() }
-                >
-                    <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active && has_data { color } else { "#64748b" })></span>
-                    <span class="text-xs text-slate-400 hover:text-slate-100 select-none">{sensor_name.clone()}</span>
-                </div>
-            });
+                let opacity = if !has_data {
+                    "opacity-25"
+                } else if is_active {
+                    "opacity-100"
+                } else {
+                    "opacity-40"
+                };
+
+                legend.push(view! {
+                    <div
+                        class=format!("flex items-center gap-1 cursor-pointer transition-opacity {}", opacity)
+                        on:click=toggle_sensor
+                        title=if has_data { String::new() } else { "Kein Messwert für diese Metrik".to_string() }
+                    >
+                        <span class="w-3 h-3 rounded-full inline-block" style=format!("background-color: {}", if is_active && has_data { color } else { "#64748b" })></span>
+                        <span class="text-xs text-slate-400 hover:text-slate-100 select-none">{sensor_name.clone()}</span>
+                    </div>
+                }.into_any());
+            }
 
             if !is_active || !has_data || data.is_empty() { continue; }
 
@@ -307,8 +373,8 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
                     pen_down = true;
                 }
 
-                let val_str = format!("{:.2}", val);
-                let sensor_c = sensor_name.clone();
+                let val_str = fmt_value(val);
+                let sensor_c = if is_height { entry.position.city.clone() } else { sensor_name.clone() };
                 let time_c = format_time(entry.timestamp);
 
                 paths.push(view! {
@@ -348,13 +414,25 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
             });
         }
 
+        // JWST orbits at 1.5 million km, where a decimal place is only noise and
+        // would push the label past the left padding.
+        let fmt_axis = |v: f64| if v.abs() >= 1000.0 {
+            format!("{:.0}", v)
+        } else {
+            format!("{:.1}", v)
+        };
+
         let y_axis_labels = vec![
-            view! { <text x={padding - 5.0} y={get_y(padded_max_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_max_val)}</text> },
-            view! { <text x={padding - 5.0} y={get_y(padded_min_val + padded_range / 2.0) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_min_val + padded_range / 2.0)}</text> },
-            view! { <text x={padding - 5.0} y={get_y(padded_min_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{format!("{:.1}", padded_min_val)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_max_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{fmt_axis(padded_max_val)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_min_val + padded_range / 2.0) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{fmt_axis(padded_min_val + padded_range / 2.0)}</text> },
+            view! { <text x={padding - 5.0} y={get_y(padded_min_val) + 4.0} text-anchor="end" font-size="10" fill="#94a3b8">{fmt_axis(padded_min_val)}</text> },
         ];
 
-        let unit_suffix = if metric == "temperature" { "K" } else { "Bar" };
+        let unit_suffix = match metric.as_str() {
+            "temperature" => "K",
+            "pressure" => "Bar",
+            _ => "km",
+        };
 
         let tooltip = move || {
             hovered_point.get().map(|(x, y, val_str, sensor_name, time_str)| {
@@ -405,50 +483,73 @@ pub fn SatelliteChart(name: String) -> impl IntoView {
         }>
 
 
-            <div class="flex items-center justify-between mb-4">
-                <div class="space-y-1">
-                    <h2 class="text-sm font-bold text-slate-100">{format!("Satellit: {}", name)}</h2>
-                    <p class="text-xs text-slate-400">"Sensordaten"</p>
+            // Wraps rather than overflowing: the card is only about a third of the
+            // grid wide and clips its content, which would swallow the last
+            // control in the row.
+            <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+                <div class="space-y-1 min-w-0">
+                    <h2 class="text-sm font-bold text-gray-900 truncate">{format!("Satellit: {}", name)}</h2>
+                    <p class="text-xs text-gray-500 truncate">
+                        {move || chart_logs.get()
+                            .iter()
+                            .max_by_key(|e| e.timestamp)
+                            .map(|e| format!("Über {} · {:.1} km", e.position.city, e.position.height))
+                            .unwrap_or_else(|| "Sensordaten".to_string())}
+                    </p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 shrink-0 ml-auto">
                     <select
                         on:change=move |ev| {
                             if let Ok(val) = event_target_value(&ev).parse::<usize>() {
                                 set_viewport_size.set(val);
                             }
                         }
+                        title="Anzahl der angezeigten Messpunkte"
                         class="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium border-none cursor-pointer focus:ring-0"
                     >
-                        <option value="10">"Letzte 10"</option>
-                        <option value="25" selected=true>"Letzte 25"</option>
-                        <option value="50">"Letzte 50"</option>
-                        <option value="100">"Letzte 100"</option>
+                        <option value="10">"10"</option>
+                        <option value="25" selected=true>"25"</option>
+                        <option value="50">"50"</option>
+                        <option value="100">"100"</option>
                     </select>
                     <div class="flex rounded-lg bg-slate-800 p-1 text-xs font-medium">
                     <button
                         on:click=move |_| set_selected_metric.set("temperature".to_string())
+                        title="Temperatur"
                         class=move || if selected_metric.get() == "temperature" {
-                            "px-2.5 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
+                            "px-2 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
                         } else {
-                            "px-2.5 py-1.5 text-slate-400 hover:text-slate-100 transition"
+                            "px-2 py-1.5 text-slate-400 hover:text-slate-100 transition"
                         }
                     >
-                        "Temperatur"
+                        "Temp."
                     </button>
                     <button
                         on:click=move |_| set_selected_metric.set("pressure".to_string())
+                        title="Druck"
                         class=move || if selected_metric.get() == "pressure" {
-                            "px-2.5 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
+                            "px-2 py-1.5 rounded-md bg-slate-600 text-white shadow-sm font-semibold"
                         } else {
-                            "px-2.5 py-1.5 text-slate-400 hover:text-slate-100 transition"
+                            "px-2 py-1.5 text-slate-400 hover:text-slate-100 transition"
                         }
                     >
                         "Druck"
                     </button>
+                    <button
+                        on:click=move |_| set_selected_metric.set("height".to_string())
+                        title="Bahnhöhe"
+                        class=move || if selected_metric.get() == "height" {
+                            "px-2 py-1.5 rounded-md bg-white text-gray-900 shadow-sm font-semibold"
+                        } else {
+                            "px-2 py-1.5 text-gray-600 hover:text-gray-900 transition"
+                        }
+                    >
+                        "Höhe"
+                    </button>
                 </div>
                     <button
                         on:click=move |_| set_expanded.update(|e| *e = !*e)
-                        class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200 text-sm leading-none font-medium hover:bg-slate-700 transition cursor-pointer"
+                        class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm leading-none font-medium hover:bg-gray-200 transition cursor-pointer shrink-0"
                         title=move || if expanded.get() { "Verkleinern" } else { "Vergrößern" }
                     >
                         {move || if expanded.get() { "⤡" } else { "⤢" }}
@@ -577,7 +678,9 @@ pub fn Dashboard() -> impl IntoView {
                                                 <th class="py-2.5 px-3">"Satellit"</th>
                                                 <th class="py-2.5 px-3">"Sensor"</th>
                                                 <th class="py-2.5 px-3">"Temperatur"</th>
-                                                <th class="py-2.5 px-3 rounded-r-lg">"Druck"</th>
+                                                <th class="py-2.5 px-3">"Druck"</th>
+                                                <th class="py-2.5 px-3">"Position"</th>
+                                                <th class="py-2.5 px-3 rounded-r-lg">"Höhe"</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-800">
@@ -591,6 +694,10 @@ pub fn Dashboard() -> impl IntoView {
                                                     </td>
                                                     <td class="py-2.5 px-3 whitespace-nowrap">
                                                         {entry.pressure.map(|p| format!("{:.2} Bar", p)).unwrap_or_else(|| "—".to_string())}
+                                                    </td>
+                                                    <td class="py-2.5 px-3 text-xs whitespace-nowrap">{entry.position.city}</td>
+                                                    <td class="py-2.5 px-3 tabular-nums whitespace-nowrap">
+                                                        {format!("{:.1} km", entry.position.height)}
                                                     </td>
                                                 </tr>
                                             }).collect::<Vec<_>>()}
