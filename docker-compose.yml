@@ -9,3 +9,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     ports:
       - 27017:27017
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - 8686:80

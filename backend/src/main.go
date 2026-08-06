@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func main()  {
+func main() {
 
 	ctx := context.Background()
-	mongo_uri := "mongodb://admin:password@localhost:27017"
+	mongo_uri := "mongodb://root:password@localhost:27017"
 
 	mongoClient, err := startDB(ctx, mongo_uri)
 	if err != nil {
@@ -36,11 +36,11 @@ func main()  {
 	}
 
 	cfg := config{
-		addr: ":8080",
+		addr: ":8585",
 	}
 	api := api{
 		config: cfg,
-		store: data,
+		store:  data,
 	}
 
 	chErr := make(chan error, 1)

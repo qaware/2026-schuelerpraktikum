@@ -2,4 +2,6 @@
 /venv
 *.iml
 *.json
+!frontend/package.json
+!frontend/package-lock.json
 /__pycache__
