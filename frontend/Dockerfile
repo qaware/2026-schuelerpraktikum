@@ -1,13 +1,17 @@
-FROM rust:1-alpine as builder
+FROM rust:1-alpine AS builder
 
-RUN apk add --no-cache musl-dev binaryen
+RUN apk add --no-cache musl-dev binaryen nodejs npm
 RUN rustup target add wasm32-unknown-unknown
 RUN cargo install --locked trunk
 
 WORKDIR /app
 
-COPY Cargo.toml Trunk.toml index.html ./
+COPY package*.json ./
+RUN npm ci
+
+COPY Cargo.toml Cargo.lock Trunk.toml index.html input.css ./
 COPY src ./src
+COPY public ./public
 
 RUN trunk build --release
 
@@ -19,3 +23,4 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
