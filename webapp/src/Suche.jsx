@@ -1,42 +1,59 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import "./stylesheet.css";
 
 function App() {
-  const [suchbegriff, setSuchbegriff] = useState('');
+  const [suchbegriff, setSuchbegriff] = useState("");
   const [istOffen, setIstOffen] = useState(false);
+  const [data, setData] = useState([]); // Start with an empty array
 
-  const daten = [
-    { id: 1, name: "Thruster SC", pressure: "2.1 bar", temperature: "45 °C" },
-    { id: 2, name: "Thruster North", pressure: "1.8 bar", temperature: "88 °C" },
-    { id: 3, name: "Bodenstation Empfänger", pressure: "0.0 bar", temperature: "22 °C" }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/data/");
 
-  const gefilterteDaten = daten.filter((item) =>
+        if (!response.ok) {
+          throw new Error("Fehler beim Laden der Daten");
+        }
+
+        const json = await response.json();
+        console.log(json);
+        setData(json);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const gefilterteDaten = data.filter((item) =>
     item.name.toLowerCase().includes(suchbegriff.toLowerCase())
   );
 
   return (
     <>
-      {/* Der Button – bekommt die Klasse für Oben-Rechts */}
-      <button 
-        className="btn-top-right" 
+      <button
+        className="btn-top-right"
         onClick={() => setIstOffen(true)}
       >
         🔍 Suchen
       </button>
 
-      {/* Das Overlay – verdeckt bei Öffnung die GANZE Seite */}
       {istOffen && (
         <div className="fullscreen-overlay">
-          <button 
-            className="close-overlay-btn" 
-            onClick={() => { setIstOffen(false); setSuchbegriff(''); }}
+          <button
+            className="close-overlay-btn"
+            onClick={() => {
+              setIstOffen(false);
+              setSuchbegriff("");
+            }}
           >
             ✕ Schließen
           </button>
 
           <div className="overlay-content">
             <h2>Sensor Suche</h2>
+
             <input
               type="text"
               className="overlay-input"
@@ -47,17 +64,18 @@ function App() {
             />
 
             <div className="overlay-results">
-              {suchbegriff !== '' && gefilterteDaten.length > 0 && (
+              {suchbegriff !== "" && gefilterteDaten.length > 0 && (
                 <ul>
-                  {gefilterteDaten.map((item) => (
-                    <li key={item.id}>
-                      <strong>{item.name}</strong> — Temp: {item.temperature} | Druck: {item.pressure}
+                  {gefilterteDaten.map((item, index) => (
+                    <li key={item.id ?? index}>
+                      <strong>{item.name}</strong> — Temp: {item.temperature} |
+                      Druck: {item.pressure}
                     </li>
                   ))}
                 </ul>
               )}
 
-              {suchbegriff !== '' && gefilterteDaten.length === 0 && (
+              {suchbegriff !== "" && gefilterteDaten.length === 0 && (
                 <p>Keine Ergebnisse gefunden.</p>
               )}
             </div>
