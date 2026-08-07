@@ -11,6 +11,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link data-trunk rel="css" href="output.css" />
+  <!-- OrbitScene bringt eigene Stile mit, alle unter .os-root gescoped. Sie
+       stehen nach output.css, damit sie die Tailwind-Basis ueberschreiben. -->
+  <link rel="stylesheet" href="/public/orbit-visualization.css" />
+
+  <!-- GSAP wird aus node_modules mitgebaut statt per CDN geladen: der Build
+       bleibt damit reproduzierbar und die Seite braucht zur Laufzeit kein
+       fremdes Netz. Beide Skripte sind klassische (nicht-module) Tags und
+       laufen daher vor dem WASM-Bootstrap, den Trunk als module-Script
+       einhaengt -- window.gsap existiert also, bevor Rust es anfasst. -->
+  <link data-trunk rel="copy-file" href="node_modules/gsap/dist/gsap.min.js" />
+  <script src="/gsap.min.js"></script>
+  <!-- Die Bahnansicht aus webflow-orbit. Unveraendert uebernommen, damit sich
+       Korrekturen dort ohne Nacharbeit hierher kopieren lassen; angebunden
+       wird sie ueber satAnim.orbitSceneCreate in animations.js. Sie braucht
+       window.gsap, steht also hinter gsap.min.js. -->
+  <script src="/public/orbit-visualization.js"></script>
+  <script src="/public/animations.js"></script>
 </head>
 
 <body>

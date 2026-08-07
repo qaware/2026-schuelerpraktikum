@@ -6,6 +6,7 @@ use crate::components::nav::Nav;
 use crate::components::home::Home;
 use crate::components::dashboard::Dashboard;
 use crate::components::satellite::Satellite;
+use crate::components::orbit::Orbit;
 
 
 
@@ -17,10 +18,15 @@ pub fn App() -> impl IntoView {
             <Nav />
 
             <main class="p-4">
-                <Routes fallback=|| view! { <div class="p-4 text-red-500">"Seite nicht gefunden (404)"</div> }>
+                <Routes fallback=|| view! {
+                    <div class="animate-rise p-4 text-red-500">"Seite nicht gefunden (404)"</div>
+                }>
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/dashboard") view=Dashboard />
-                    <Route path=path!("/Satellite") view=Satellite />
+                    // Kleingeschrieben: URL-Pfade sind case-sensitiv, und
+                    // "/Satellite" landete sonst als einziger Pfad aus dem Rahmen.
+                    <Route path=path!("/satellite") view=Satellite />
+                    <Route path=path!("/orbit") view=Orbit />
                 </Routes>
             </main>
         </Router>

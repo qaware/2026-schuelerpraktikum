@@ -18,9 +18,15 @@ type SatelliteResponse struct {
 	// indexes keep working.
 	Time int64 `json:"timestamp" bson:"time"`
 }
+// Position is the sub-satellite point: the spot on the surface the satellite
+// is directly above, plus its altitude. Latitude and Longitude are what let a
+// client place the satellite on a globe -- without them, City alone only
+// narrows it down to one of a handful of ground stations.
 type Position struct {
-	City   string  `json:"city" bson:"city"`
-	Height float32 `json:"height" bson:"height"`
+	City      string  `json:"city" bson:"city"`
+	Height    float32 `json:"height" bson:"height"`
+	Latitude  float32 `json:"latitude" bson:"latitude"`
+	Longitude float32 `json:"longitude" bson:"longitude"`
 }
 type Specs struct {
 	Name       string   `json:"name" bson:"name"`
@@ -28,6 +34,8 @@ type Specs struct {
 	LaunchDate string   `json:"launch_date" bson:"launch_date"`
 	Sensors    []string `json:"sensors" bson:"sensors"`
 	Nation     string   `json:"nation" bson:"nation"`
+	// Orbital inclination in degrees.
+	Inclination float32 `json:"inclination" bson:"inclination"`
 }
 
 /* Response Types */
@@ -43,9 +51,10 @@ type LogsResponse struct {
 	Data   []SatelliteResponse `json:"data"`
 }
 type SatelliteDetailResponse struct {
-	Name       string   `json:"name"`
-	Model      string   `json:"model"`
-	LaunchDate string   `json:"launchdate"`
-	Sensors    []string `json:"sensors"`
-	Nation     string   `json:"nation"`
+	Name        string   `json:"name"`
+	Model       string   `json:"model"`
+	LaunchDate  string   `json:"launchdate"`
+	Sensors     []string `json:"sensors"`
+	Nation      string   `json:"nation"`
+	Inclination float32  `json:"inclination"`
 }
