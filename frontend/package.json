@@ -3,5 +3,8 @@
   "private": true,
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0"
   }
 }

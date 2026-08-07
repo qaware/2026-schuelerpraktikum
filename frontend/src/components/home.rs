@@ -43,6 +43,8 @@ fn StatTile(label: &'static str, value: String, hint: String) -> impl IntoView {
     }
 }
 
+use crate::anim;
+
 #[component]
 pub fn Home() -> impl IntoView {
     let (logs, set_logs) = signal(Vec::<LogEntry>::new());
@@ -192,18 +194,27 @@ pub fn Home() -> impl IntoView {
         }
     };
 
+    Effect::new(move |_| {
+        anim::reveal_once("[data-anim=\"reveal\"]", 0.1);
+    });
+
     view! {
         <div class="container mx-auto max-w-screen-xl px-4">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6 pt-2">
+            <div data-anim="reveal" class="flex flex-col gap-4 border-b border-slate-800 pt-2 pb-6 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <div class="flex items-center align-center">
-                        <h1 class="text-3xl font-bold text-slate-100 tracking-tight">"Home"</h1>
-                        <span class="w-2 h-2 ml-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-sheen text-3xl font-bold tracking-tight">"Home"</h1>
+                        <span class="relative flex h-2 w-2" aria-hidden="true">
+                            <span class="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+                            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-sm space-y-4 mt-8">
+            <div
+                data-anim="reveal" class="mt-8 space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-sm transition-all duration-300 hover:shadow-md"
+            >
                 <h2 class="text-2xl font-semibold text-slate-200">"Satelliten-Telemetrie"</h2>
                 <p class="text-slate-400 leading-relaxed">
                     "Dieses Projekt simuliert die Bodenstation einer Satellitenflotte. Sensordaten
@@ -234,7 +245,7 @@ pub fn Home() -> impl IntoView {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            <div data-anim="reveal" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
                 {move || if loaded.get() {
                     tiles().into_any()
                 } else {
@@ -245,7 +256,7 @@ pub fn Home() -> impl IntoView {
             </div>
 
             <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm">
+                <div data-anim="reveal" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm transition-all duration-300 hover:shadow-md">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-slate-200">"Flottenstatus"</h3>
                         <a href="/dashboard" class="text-xs text-blue-400 hover:text-blue-300">"Zum Dashboard →"</a>
@@ -309,7 +320,7 @@ pub fn Home() -> impl IntoView {
                     }}
                 </div>
 
-                <div class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm">
+                <div data-anim="reveal" class="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm transition-all duration-300 hover:shadow-md">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-slate-200">"Live-Ticker"</h3>
                         <span class="text-xs text-slate-500">"neueste zuerst"</span>

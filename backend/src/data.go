@@ -125,11 +125,12 @@ func (api *api) listSpecsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, SatelliteDetailResponse{
-		Name:       data.Name,
-		Model:      data.Model,
-		LaunchDate: data.LaunchDate,
-		Sensors:    data.Sensors,
-		Nation:     data.Nation,
+		Name:        data.Name,
+		Model:       data.Model,
+		LaunchDate:  data.LaunchDate,
+		Sensors:     data.Sensors,
+		Nation:      data.Nation,
+		Inclination: data.Inclination,
 	})
 }
 

@@ -4,10 +4,14 @@ use leptos::task::spawn_local;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+use crate::anim;
 use crate::components::dashboard::{
     fetch_satellite_detail, fetch_satellite_logs, fetch_satellites, format_date, LogEntry,
     SatelliteDetail,
 };
+
+/// Vier Bilder, beliebig viele Satelliten -- daher zyklisch zugeordnet.
+const IMAGES: [&str; 4] = ["sat1", "sat2", "sat3", "sat4"];
 
 /// A measurement older than this counts as loss of signal.
 const STALE_AFTER_SECONDS: u64 = 30;
@@ -16,6 +20,7 @@ fn now_seconds() -> u64 {
     (js_sys::Date::now() / 1000.0) as u64
 }
 
+/// Ein Datenfeld in der Spec-Tabelle.
 #[component]
 fn SpecRow(label: &'static str, value: String) -> impl IntoView {
     view! {
@@ -48,7 +53,7 @@ fn height_trend(entries: &[LogEntry]) -> Option<(&'static str, String, &'static 
 }
 
 #[component]
-fn SatelliteCard(name: String, image: String) -> impl IntoView {
+fn SatelliteCard(name: String, index: usize) -> impl IntoView {
     let (detail, set_detail) = signal(None::<SatelliteDetail>);
     // A short window instead of a single row, so the height trend has something
     // to compare the newest value against.
@@ -93,17 +98,34 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 
     let heading = name.clone();
     let alt_text = name.clone();
+    let image = IMAGES[index % IMAGES.len()];
 
     view! {
-        <div class="my-8 w-full p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm overflow-hidden">
+        <div
+            data-anim="reveal"
+            class="group my-8 w-full overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/40 hover:shadow-lg"
+        >
             <div class="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-slate-800">
                 <div class="p-4 min-h-48 flex justify-center items-center">
-                    <img src=image alt=alt_text class="h-48 object-cover rounded-xl"/>
+                    <img
+                        src=format!("/public/{}.png", image)
+                        alt=alt_text
+                        class="animate-float h-48 rounded-xl object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                        // Versetzt, damit nicht alle Karten im Gleichtakt schweben.
+                        style=format!("animation-delay: {}ms", index * 900)
+                    />
                 </div>
 
                 <div class="p-4 min-h-48">
                     <div class="flex items-center justify-between gap-3 mb-4">
-                        <h2 class="text-2xl font-semibold text-slate-200">{heading}</h2>
+                        <div class="flex items-center gap-2 min-w-0">
+                            <h2 class="text-2xl font-semibold text-slate-200 truncate">{heading}</h2>
+                            {move || detail.get().map(|d| view! {
+                                <span class="shrink-0 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-300 uppercase">
+                                    {d.nation}
+                                </span>
+                            })}
+                        </div>
                         {move || {
                             let entry = latest.get();
                             let fresh = entry
@@ -113,14 +135,17 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 
                             if fresh {
                                 view! {
-                                    <span class="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span class="flex shrink-0 items-center gap-1.5 text-xs font-medium text-emerald-400">
+                                        <span class="relative flex h-2 w-2" aria-hidden="true">
+                                            <span class="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+                                            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                        </span>
                                         "Signal"
                                     </span>
                                 }.into_any()
                             } else {
                                 view! {
-                                    <span class="flex items-center gap-1.5 text-xs font-medium text-amber-400">
+                                    <span class="flex shrink-0 items-center gap-1.5 text-xs font-medium text-amber-400">
                                         <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                         "Kein Signal"
                                     </span>
@@ -131,7 +156,11 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 
                     {move || match detail.get() {
                         None => view! {
-                            <p class="text-sm text-slate-500">"Lade Stammdaten..."</p>
+                            <div class="space-y-3">
+                                {(0..5).map(|_| view! {
+                                    <div class="skeleton h-4 w-full rounded-full"></div>
+                                }).collect_view()}
+                            </div>
                         }.into_any(),
                         Some(d) => {
                             let entry = latest.get();
@@ -194,10 +223,15 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
                                 <div>
                                     <p class="text-xs uppercase tracking-wide text-slate-400 mb-2">"Sensoren"</p>
                                     <div class="flex flex-wrap gap-1.5">
-                                        {d.sensors.iter().map(|s| view! {
-                                            <span class="px-2 py-1 rounded-md bg-slate-800 text-slate-300 text-xs font-mono">
-                                                {s.clone()}
-                                            </span>
+                                        {d.sensors.iter().map(|sensor| {
+                                            // Tanks und Thruster optisch trennen, damit die
+                                            // Liste bei einem Dutzend Sensoren lesbar bleibt.
+                                            let chip = if sensor.contains("tank") {
+                                                "rounded-md bg-amber-500/15 px-2 py-1 font-mono text-[11px] text-amber-300 transition-transform duration-200 hover:scale-105"
+                                            } else {
+                                                "rounded-md bg-slate-800 px-2 py-1 font-mono text-[11px] text-slate-300 transition-transform duration-200 hover:scale-105"
+                                            };
+                                            view! { <span class=chip>{sensor.clone()}</span> }
                                         }).collect::<Vec<_>>()}
                                     </div>
                                 </div>
@@ -214,6 +248,7 @@ fn SatelliteCard(name: String, image: String) -> impl IntoView {
 pub fn Satellite() -> impl IntoView {
     let (satellites, set_satellites) = signal(Vec::<String>::new());
     let (loaded, set_loaded) = signal(false);
+    let (failed, set_failed) = signal(false);
 
     let alive = Arc::new(AtomicBool::new(true));
     let cleanup_flag = alive.clone();
@@ -227,18 +262,33 @@ pub fn Satellite() -> impl IntoView {
                 break;
             }
 
-            if let Ok(names) = fetch_satellites().await {
-                if !alive.load(Ordering::Relaxed) {
-                    break;
+            match fetch_satellites().await {
+                Ok(names) => {
+                    if !alive.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    set_loaded.set(true);
+                    if names != satellites.get_untracked() {
+                        set_satellites.set(names);
+                    }
+                    if failed.get_untracked() {
+                        set_failed.set(false);
+                    }
                 }
-                set_loaded.set(true);
-                if names != satellites.get_untracked() {
-                    set_satellites.set(names);
+                Err(_) => {
+                    if !failed.get_untracked() {
+                        set_failed.set(true);
+                    }
                 }
             }
 
             TimeoutFuture::new(5000).await;
         }
+    });
+
+    Effect::new(move |_| {
+        let _ = satellites.get();
+        anim::reveal_once("[data-anim=\"reveal\"]", 0.12);
     });
 
     // Both closures live outside the view! macro: a turbofish like
@@ -247,26 +297,50 @@ pub fn Satellite() -> impl IntoView {
         satellites.get().into_iter().enumerate().collect()
     };
     let render_card = move |(i, name): (usize, String)| {
-        let image = format!("/public/sat{}.png", (i % 4) + 1);
-        view! { <SatelliteCard name=name image=image /> }
+        view! { <SatelliteCard name=name index=i /> }
     };
 
     view! {
         <div class="container mx-auto max-w-screen-xl px-4">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6 pt-2">
+            <div data-anim="reveal" class="flex flex-col gap-4 border-b border-slate-800 pt-2 pb-6 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <div class="flex items-center align-center">
-                        <h1 class="text-3xl font-bold text-slate-100 tracking-tight">"Satelliten"</h1>
-                        <span class="w-2 h-2 ml-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-sheen text-3xl font-bold tracking-tight">"Satelliten"</h1>
+                        <span class="relative flex h-2 w-2" aria-hidden="true">
+                            <span class="animate-live-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400"></span>
+                            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                        </span>
                     </div>
                 </div>
+                {move || failed.get().then(|| view! {
+                    <span class="animate-pop-in rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-400">
+                        "Backend nicht erreichbar"
+                    </span>
+                })}
             </div>
 
             {move || (!loaded.get()).then(|| view! {
-                <p class="text-slate-500 mt-8">"Lade Satelliten..."</p>
+                <div class="my-8 space-y-6">
+                    {(0..2).map(|_| view! {
+                        <div class="w-full rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div class="skeleton h-48 rounded-xl"></div>
+                                <div class="space-y-3 p-4">
+                                    <div class="skeleton h-5 w-32 rounded-full"></div>
+                                    <div class="skeleton h-4 w-full rounded-full"></div>
+                                    <div class="skeleton h-4 w-4/5 rounded-full"></div>
+                                    <div class="skeleton h-4 w-2/3 rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    }).collect_view()}
+                </div>
             })}
+
             {move || (loaded.get() && satellites.get().is_empty()).then(|| view! {
-                <p class="text-slate-500 mt-8">"Noch keine Satelliten empfangen."</p>
+                <div class="animate-fade-in my-8 rounded-2xl border border-dashed border-slate-700 p-10 text-center text-slate-500">
+                    "Noch keine Satelliten empfangen."
+                </div>
             })}
 
             // Keyed, so a newly appearing satellite adds one card instead of

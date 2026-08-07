@@ -18,3 +18,102 @@ body {
   background-color: var(--color-slate-950);
   color: var(--color-slate-300);
 }
+
+/* Motion-System.
+   Jedes Token hier wird von Tailwind v4 zu einer `animate-<name>`-Klasse.
+   `both` als fill-mode ist wichtig: ohne das blitzen Elemente mit
+   Verzoegerung erst im Endzustand auf, bevor die Animation beginnt. */
+@theme {
+    --animate-fade-in: fade-in 0.45s ease-out both;
+    --animate-pop-in: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    --animate-slide-down: slide-down 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-shimmer: shimmer 1.6s linear infinite;
+    --animate-live-ping: live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+    --animate-float: float 6s ease-in-out infinite;
+    --animate-sheen: sheen 2.8s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes pop-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-down {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
+}
+
+/* Ausstrahlender Ring am Status-Indikator. */
+@keyframes live-ping {
+    0%   { transform: scale(1); opacity: 0.65; }
+    75%  { transform: scale(2.4); opacity: 0; }
+    100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+}
+
+/* Wanderndes Glanzlicht ueber der Ueberschrift. */
+@keyframes sheen {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+
+/* Skeleton-Platzhalter fuer Ladezustaende.
+   Dunkle Stufen, weil der Hintergrund fest auf slate-950 steht - die hellen
+   gray-Toene von vorher waren auf der dunklen Seite grelle Balken. */
+@utility skeleton {
+    background-image: linear-gradient(
+        90deg,
+        var(--color-slate-800) 25%,
+        var(--color-slate-700) 50%,
+        var(--color-slate-800) 75%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+}
+
+/* Animierter Gradient-Text fuer die Seitentitel.
+   Die Eckpunkte sind hell (slate-100) statt gray-900: auf slate-950 waere der
+   Text an beiden Enden des Verlaufs sonst unsichtbar. */
+@utility text-sheen {
+    background-image: linear-gradient(
+        100deg,
+        var(--color-slate-100) 0%,
+        var(--color-blue-400) 35%,
+        var(--color-violet-400) 50%,
+        var(--color-blue-400) 65%,
+        var(--color-slate-100) 100%
+    );
+    background-size: 220% auto;
+    background-clip: text;
+    color: transparent;
+    animation: var(--animate-sheen);
+}
+
+/* Barrierefreiheit: Wer im Betriebssystem weniger Bewegung anfordert, bekommt
+   die Endzustaende ohne Bewegung. Ohne das sind die Endlos-Animationen
+   (Shimmer, Ping, Float) fuer empfindliche Nutzer ein echtes Problem. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        animation-delay: 0ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

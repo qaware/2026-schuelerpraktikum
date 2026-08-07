@@ -31,12 +31,35 @@ DROPOUT_CHANCE = 0.10
 # Satellite catalog. A satellite keeps its identity across every measurement --
 # model, nation, launch date and sensor list are looked up here, never re-rolled
 # per record, otherwise /satellites/{name} would flicker between answers.
+EARTH_RADIUS_KM = 6371.0
+# Gravitationsparameter der Erde in km^3/s^2.
+MU_EARTH = 398_600.4418
+# Siderischer Tag, nicht 86400: die Erde dreht sich relativ zu den Sternen.
+EARTH_ROTATION_DEG_PER_S = 360.0 / 86_164.0905
+
+# Zeitraffer der simulierten Bahnbewegung.
+#
+# Real braucht die ISS rund 92 Minuten pro Umlauf -- in Echtzeit waere auf einer
+# Karte nichts zu sehen. Die Raffung sitzt bewusst hier in der Simulation und
+# nicht im Frontend: so bewegen sich die Satelliten in den Daten selbst, und die
+# Anzeige muss nichts dazuerfinden. Bei 120 dauert ein ISS-Umlauf gut 45
+# Sekunden Wanduhrzeit.
+ORBIT_SPEEDUP = float(os.environ.get("ORBIT_SPEEDUP", "120"))
+# Fester Bezugspunkt, damit aus der Unixzeit keine unnoetig grossen Zahlen
+# werden (die Raffung multipliziert sie ja noch).
+ORBIT_EPOCH = 1_700_000_000
+
 SATELLITES_DB: dict[str, dict] = {
     "ISS": {
         "name": "ISS",
         "model": "Zarya-1",
         "launch_date": "20.11.1998",
         "base_height": 408.15,
+        # Echte Bahnneigung der ISS. RAAN und Phase sind frei gewaehlt, damit
+        # die drei Satelliten nicht uebereinander liegen.
+        "inclination": 51.64,
+        "raan": 20.0,
+        "phase": 0.0,
         "sensors": [
             "thruster_1.a", "thruster_1.b", "thruster_1.c",
             "thruster_2.a", "thruster_2.b", "thruster_2.c",
@@ -51,6 +74,9 @@ SATELLITES_DB: dict[str, dict] = {
         "model": "HST-1",
         "launch_date": "24.04.1990",
         "base_height": 540.22,
+        "inclination": 28.47,
+        "raan": 150.0,
+        "phase": 120.0,
         "sensors": [
             "thruster_1.a", "thruster_1.b", "thruster_1.c",
             "oxygen_tank_1", "hydrogen_tank_1"
@@ -62,6 +88,12 @@ SATELLITES_DB: dict[str, dict] = {
         "model": "Webb-O1",
         "launch_date": "25.12.2021",
         "base_height": 1500000.0,
+        # JWST steht real am Lagrangepunkt L2 und umkreist nicht die Erde. Fuer
+        # die Simulation wird trotzdem eine erdnahe Kreisbahn gerechnet -- sonst
+        # gaebe es fuer diesen Satelliten keine Position.
+        "inclination": 0.5,
+        "raan": 280.0,
+        "phase": 240.0,
         "sensors": [
             "thruster_1.a", "thruster_1.b", "thruster_2.a",
             "oxygen_tank_1", "hydrogen_tank_1"
@@ -88,30 +120,88 @@ SENSOR_SPECS: dict[str, dict] = {
     "hydrogen_tank_2": {"base_p": 21.5, "amp_p": 3.8, "base_t": 203.0, "amp_t": 11.0, "freq": 0.015, "interval": (4.5, 9.5), "p_noise": 0.40, "t_noise": 0.7},
 }
 
-CITIES: list[str] = [
-    "Miami",
-    "Berlin",
-    "Tokyo",
-    "Cape Canaveral",
-    "Sydney",
-    "Houston",
-    "Kourou"
+# Bodenstationen mit Koordinaten (Breite, Laenge in Grad).
+#
+# Vorher war das eine reine Namensliste und die Stadt wurde im 5-Minuten-Takt
+# durchgereicht -- sie hatte also nichts mit der Position des Satelliten zu tun.
+# Mit Koordinaten wird stattdessen die naechstgelegene Station gemeldet.
+CITY_COORDS: list[tuple[str, float, float]] = [
+    ("Miami", 25.76, -80.19),
+    ("Berlin", 52.52, 13.40),
+    ("Tokyo", 35.68, 139.69),
+    ("Cape Canaveral", 28.39, -80.60),
+    ("Sydney", -33.87, 151.21),
+    ("Houston", 29.76, -95.37),
+    ("Kourou", 5.16, -52.65),
 ]
+
+CITIES: list[str] = [name for name, _, _ in CITY_COORDS]
+
+
+def orbital_period_seconds(height_km: float) -> float:
+    """Umlaufzeit einer Kreisbahn nach dem dritten Keplerschen Gesetz."""
+    a = EARTH_RADIUS_KM + height_km
+    return 2.0 * math.pi * math.sqrt(a ** 3 / MU_EARTH)
+
+
+def sub_satellite_point(sat_info: dict, ts: float) -> tuple[float, float]:
+    """Punkt auf der Erdoberflaeche, ueber dem der Satellit gerade steht.
+
+    Kreisbahn mit gegebener Neigung und Knotenlaenge, ausgewertet im
+    Inertialsystem und anschliessend um die Erddrehung zurueckgerechnet. Daher
+    laeuft die Bodenspur bei jedem Umlauf nach Westen weiter, statt sich zu
+    wiederholen.
+    """
+    period = orbital_period_seconds(sat_info["base_height"])
+    sim_t = (ts - ORBIT_EPOCH) * ORBIT_SPEEDUP
+
+    inc = math.radians(sat_info["inclination"])
+    raan = math.radians(sat_info["raan"])
+    # Argument der Breite: Winkel entlang der Bahn ab dem aufsteigenden Knoten.
+    u = 2.0 * math.pi * ((sim_t % period) / period) + math.radians(sat_info["phase"])
+
+    x = math.cos(raan) * math.cos(u) - math.sin(raan) * math.sin(u) * math.cos(inc)
+    y = math.sin(raan) * math.cos(u) + math.cos(raan) * math.sin(u) * math.cos(inc)
+    z = math.sin(u) * math.sin(inc)
+
+    lat = math.degrees(math.asin(max(-1.0, min(1.0, z))))
+    lon = math.degrees(math.atan2(y, x)) - EARTH_ROTATION_DEG_PER_S * sim_t
+
+    # Auf -180..180 normieren.
+    lon = (lon + 180.0) % 360.0 - 180.0
+    return round(lat, 4), round(lon, 4)
+
+
+def nearest_city(lat: float, lon: float) -> str:
+    """Naechstgelegene Bodenstation ueber die Zentralwinkeldistanz."""
+    p1 = math.radians(lat)
+
+    def distance(entry: tuple[str, float, float]) -> float:
+        _, clat, clon = entry
+        p2 = math.radians(clat)
+        dl = math.radians(clon - lon)
+        cos_d = math.sin(p1) * math.sin(p2) + math.cos(p1) * math.cos(p2) * math.cos(dl)
+        return math.acos(max(-1.0, min(1.0, cos_d)))
+
+    return min(CITY_COORDS, key=distance)[0]
 
 
 class Position:
-    def __init__(self, city: str, height: float):
+    def __init__(self, city: str, height: float, latitude: float, longitude: float):
         self.city: str = city
         self.height: float = height
+        self.latitude: float = latitude
+        self.longitude: float = longitude
 
 
 class Specs:
-    def __init__(self, name: str, model: str, launch_date: str, sensors: list[str], nation: str):
+    def __init__(self, name: str, model: str, launch_date: str, sensors: list[str], nation: str, inclination: float):
         self.name: str = name
         self.model: str = model
         self.launch_date: str = launch_date
         self.sensors: list[str] = sensors
         self.nation: str = nation
+        self.inclination: float = inclination
 
 
 class Sensor:
@@ -226,7 +316,8 @@ class DataGenerator:
         height_offset = self.height_offsets.get(sat_name, 0.0)
         height = max(100.0, round(sat_info["base_height"] + height_offset + 15.0 * h_wave + noise_h, 4))
 
-        city = CITIES[(int(ts / 300) + hash(sat_name)) % len(CITIES)]
+        latitude, longitude = sub_satellite_point(sat_info, ts)
+        city = nearest_city(latitude, longitude)
 
         # Tanks only carry one of the two probes.
         if sensor_name.startswith("oxygen_tank"):
@@ -240,12 +331,15 @@ class DataGenerator:
             temperature=temperature,
             timestamp=int(ts),
             pos=Position(city=city,
-                         height=height),
+                         height=height,
+                         latitude=latitude,
+                         longitude=longitude),
             specs=Specs(name=sat_info["name"],
                         model=sat_info["model"],
                         launch_date=sat_info["launch_date"],
                         sensors=sat_info["sensors"],
                         nation=sat_info["nation"],
+                        inclination=sat_info["inclination"],
         ))
 
     @staticmethod
