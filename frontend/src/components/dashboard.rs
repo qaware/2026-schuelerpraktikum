@@ -102,7 +102,8 @@ pub async fn fetch_satellites() -> Result<Vec<String>, gloo_net::Error> {
         .await?
         .json()
         .await?;
-    Ok(res.names)
+    let filtered = res.names.into_iter().filter(|n| !n.is_empty() && n != "TEST_SAT" && n != "test_sat").collect();
+    Ok(filtered)
 }
 
 pub async fn fetch_sensors(name: &str) -> Result<Vec<String>, gloo_net::Error> {

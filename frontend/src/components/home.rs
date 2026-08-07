@@ -90,6 +90,9 @@ pub fn Home() -> impl IntoView {
 
         for entry in entries.iter() {
             let name = entry.specs.name.clone();
+            if name.is_empty() || name == "TEST_SAT" || name == "test_sat" {
+                continue;
+            }
             sensors
                 .entry(name.clone())
                 .or_default()
@@ -104,11 +107,11 @@ pub fn Home() -> impl IntoView {
                 .or_insert(entry);
         }
 
-        let mut names = sats.get();
+        let mut names: Vec<String> = sats.get().into_iter().filter(|n| !n.is_empty() && n != "TEST_SAT" && n != "test_sat").collect();
         // A satellite that fell out of the window still deserves a row, and one
         // that only just appeared may not be in /satellites yet.
         for name in last.keys() {
-            if !names.contains(name) {
+            if !name.is_empty() && name != "TEST_SAT" && name != "test_sat" && !names.contains(name) {
                 names.push(name.clone());
             }
         }

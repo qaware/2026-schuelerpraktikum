@@ -39,6 +39,15 @@ func newStore(client *mongo.Client) *store {
 }
 
 func (store *store) ensureIndexing(ctx context.Context) error {
+	// Purge any test records or empty satellite names from database on startup
+	_, _ = store.collection.DeleteMany(ctx, bson.M{
+		"$or": bson.A{
+			bson.M{"satellite_name": "TEST_SAT"},
+			bson.M{"satellite_name": ""},
+			bson.M{"sensor_name": "test_probe_health"},
+		},
+	})
+
 	_, err := store.collection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys: bson.D{
@@ -62,11 +71,25 @@ func (store *store) insert(ctx context.Context, data SatelliteResponse) error {
 }
 
 func (store *store) listSatellites(ctx context.Context) ([]string, error) {
-	var satellites []string
+	var rawSatellites []string
 
-	err := store.collection.Distinct(ctx, "satellite_name", bson.D{}).Decode(&satellites)
+	filter := bson.D{
+		{Key: "satellite_name", Value: bson.D{
+			{Key: "$ne", Value: ""},
+			{Key: "$nin", Value: bson.A{"TEST_SAT", "test_sat", "test_probe_health"}},
+		}},
+	}
+
+	err := store.collection.Distinct(ctx, "satellite_name", filter).Decode(&rawSatellites)
 	if err != nil {
 		return nil, err
+	}
+
+	var satellites []string
+	for _, name := range rawSatellites {
+		if name != "" && name != "TEST_SAT" && name != "test_sat" {
+			satellites = append(satellites, name)
+		}
 	}
 	sort.Strings(satellites)
 	return satellites, nil

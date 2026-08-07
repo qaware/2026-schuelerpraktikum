@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"runtime"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 var startTime = time.Now()
@@ -117,9 +119,10 @@ func (api *api) runTestsHandler(w http.ResponseWriter, r *http.Request) {
 	tempVal := float32(42.5)
 	pressVal := float32(3.14)
 	dummyRecord := SatelliteResponse{
-		SensorName:  "test_probe_health",
-		Temperature: &tempVal,
-		Pressure:    &pressVal,
+		SatelliteName: "TEST_SAT",
+		SensorName:    "test_probe_health",
+		Temperature:   &tempVal,
+		Pressure:      &pressVal,
 		Position: Position{
 			City:   "TestLab",
 			Height: 999.9,
@@ -141,6 +144,14 @@ func (api *api) runTestsHandler(w http.ResponseWriter, r *http.Request) {
 			Passed:   true,
 			Duration: time.Since(t2Start).Milliseconds(),
 			Message:  "Test record inserted into database successfully.",
+		})
+		// Immediately clean up test record so it does not pollute satellite catalog
+		_, _ = api.store.collection.DeleteMany(ctx, bson.M{
+			"$or": bson.A{
+				bson.M{"satellite_name": "TEST_SAT"},
+				bson.M{"satellite_name": ""},
+				bson.M{"sensor_name": "test_probe_health"},
+			},
 		})
 	} else {
 		steps = append(steps, TestStepResult{
