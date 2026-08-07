@@ -1,0 +1,1142 @@
+.sensor-section {
+    margin: 0 auto 48px;
+    width: 90%;
+}
+
+.sensor-section h2 {
+    text-align: left;
+    margin: 0 0 12px 4px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* Der Wrapper sorgt fuer die runden Ecken und den Schatten */
+.table-wrapper {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+    background: var(--bg);
+}
+
+thead th {
+    background: var(--accent-bg);
+    color: var(--text-h);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--accent-border);
+}
+
+tbody td {
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Letzte Zeile ohne Trennlinie, damit die runde Ecke sauber bleibt */
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Zebra-Streifen */
+tbody tr:nth-child(even) {
+    background: var(--social-bg);
+}
+
+tbody tr:hover {
+    background: var(--accent-bg);
+}
+
+/* Zahlenspalten: rechtsbuendig und mit gleich breiten Ziffern */
+.num {
+    text-align: right !important;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.empty {
+    text-align: center !important;
+    padding: 24px;
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Sensorname ist anklickbar und oeffnet das Detail-Fenster */
+.sensor-name {
+    display: inline-block;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 14px;
+    font: inherit;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.sensor-name:hover,
+.sensor-name:focus-visible {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+/* Detail-Fenster */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modal {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 760px;
+    max-height: 85vh;
+    padding: 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 22px;
+}
+
+.modal-subtitle {
+    margin: 4px 0 0;
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+.modal-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    font-size: 15px;
+    line-height: 1;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.modal-close:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+}
+
+@media (max-width: 1024px) {
+    .sensor-section {
+        width: 100%;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    thead th,
+    tbody td {
+        padding: 10px 12px;
+    }
+/* ============================================================
+   Design-Tokens – minimalistisch in Blau & Weiß
+   ============================================================ */
+:root {
+  --blau-50: #eff6ff;
+  --blau-100: #dbeafe;
+  --blau-200: #bfdbfe;
+  --blau-400: #60a5fa;
+  --blau-500: #3b82f6;
+  --blau-600: #2563eb;
+  --blau-700: #1d4ed8;
+
+  /* Akzentfarben für Verläufe – bleiben in der blauen Familie */
+  --himmel-500: #0ea5e9;
+  --indigo-500: #4f46e5;
+  --verlauf: linear-gradient(
+    135deg,
+    var(--himmel-500) 0%,
+    var(--blau-600) 50%,
+    var(--indigo-500) 100%
+  );
+
+  --weiss: #ffffff;
+  --grau-50: #f8fafc;
+  --grau-100: #f1f5f9;
+  --grau-200: #e8edf3;
+  --grau-300: #cbd5e1;
+  --grau-400: #94a3b8;
+  --grau-500: #64748b;
+  --grau-900: #0f172a;
+
+  --rot-500: #ef4444;
+  --rot-700: #b91c1c;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --schatten: 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px -12px rgba(15, 23, 42, 0.12);
+  --ring: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  --kopfzeile-hoehe: 60px;
+  --weich: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  font: 16px/1.5 var(--sans);
+  color: var(--grau-900);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--grau-50);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+:root {
+  --text: #000000;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #2563eb;
+  --accent-bg: rgba(37, 99, 235, 0.1);
+  --accent-border: rgba(37, 99, 235, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 24px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+::selection {
+  background: var(--blau-100);
+  color: var(--blau-700);
+}
+
+/* Dezenter blauer Scrollbalken statt Systemgrau */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--grau-300) transparent;
+}
+
+@keyframes einblenden {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #60a5fa;
+    --accent-bg: rgba(96, 165, 250, 0.15);
+    --accent-border: rgba(96, 165, 250, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+/* ============================================================
+   Layout
+   ============================================================ */
+.app {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.inhalt {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ============================================================
+   Kopfzeile
+   ============================================================ */
+.kopfzeile {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--kopfzeile-hoehe);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--grau-200);
+}
+
+.kopfzeile-inhalt {
+  height: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.marke {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Marke in der Kopfzeile ist zugleich der Weg zurück zur Startseite */
+.marke--btn {
+  padding: 6px 10px;
+  margin-left: -10px;
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.marke--btn:hover {
+  background: var(--blau-50);
+}
+
+.marke--btn:hover .marke-icon {
+  transform: rotate(-20deg);
+}
+
+.marke--btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.marke-icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--blau-600);
+  stroke-width: 1.6;
+  transition: transform 0.4s var(--weich);
+}
+
+.kopfzeile-aktionen {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-punkt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--grau-500);
+  white-space: nowrap;
+}
+
+.status-punkt::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--grau-300);
+}
+
+.status-punkt--ok::before {
+  background: var(--blau-600);
+  box-shadow: 0 0 0 3px var(--blau-100);
+  animation: pulsieren 2.4s ease-in-out infinite;
+}
+
+.status-punkt--fehler::before {
+  background: var(--rot-500);
+  box-shadow: 0 0 0 3px #fee2e2;
+}
+
+@keyframes pulsieren {
+  50% {
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+  }
+}
+
+.aktualisiert {
+  font-size: 13px;
+  color: var(--grau-400);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blau-700);
+  background: var(--weiss);
+  border: 1px solid var(--grau-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--blau-50);
+  border-color: var(--blau-200);
+}
+
+.btn:active:not(:disabled) {
+  background: var(--blau-100);
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn--laedt .btn-icon {
+  animation: drehen 0.8s linear infinite;
+}
+
+@keyframes drehen {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================
+   Startseite – Einstieg über den Such-Button
+   ============================================================ */
+.startseite {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding: 0 24px 48px;
+  /* Zarte Farbschleier oben – bleibt insgesamt weiß und ruhig */
+  background:
+    radial-gradient(46% 38% at 16% 0%, rgba(14, 165, 233, 0.13) 0%, transparent 72%),
+    radial-gradient(44% 36% at 84% 3%, rgba(79, 70, 229, 0.12) 0%, transparent 72%),
+    radial-gradient(62% 46% at 50% 0%, var(--blau-50) 0%, transparent 70%),
+    var(--weiss);
+}
+
+.start-inhalt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-top: 64px;
+}
+
+/* Kopfbereich: Titel + Suchleiste, schmaler als der Tabellenbereich */
+.start-kopf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 520px;
+}
+
+/* Elemente laufen nacheinander ein */
+.start-kopf > *,
+.start-tabellenplatz {
+  animation: einblenden 0.55s var(--weich) both;
+}
+
+.start-icon {
+  animation-delay: 0.02s;
+}
+.start-titel {
+  animation-delay: 0.08s;
+}
+.start-untertitel {
+  animation-delay: 0.14s;
+}
+.start-suchbtn-wrap {
+  animation-delay: 0.2s;
+}
+.start-meta {
+  animation-delay: 0.26s;
+}
+.start-tabellenplatz {
+  animation-delay: 0.32s;
+}
+
+.start-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  overflow: visible;
+}
+
+.start-bahn,
+.start-planet {
+  fill: none;
+  stroke: var(--blau-600);
+  stroke-width: 1.4;
+}
+
+.start-bahn {
+  stroke: var(--blau-200);
+}
+
+/* Der kleine Satellit, der die Umlaufbahn entlangzieht */
+.start-satellit {
+  fill: var(--blau-600);
+}
+
+/* Überschrift mit langsam wanderndem Farbverlauf */
+.start-titel {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  background: var(--verlauf);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation:
+    einblenden 0.55s var(--weich) 0.08s both,
+    verlauf-wandern 9s ease-in-out 0.7s infinite alternate;
+}
+
+@keyframes verlauf-wandern {
+  to {
+    background-position: 100% 0;
+  }
+}
+
+.start-untertitel {
+  margin: 10px 0 0;
+  font-size: 16px;
+  color: var(--grau-500);
+  text-wrap: balance;
+}
+
+.start-suchbtn-wrap {
+  width: 100%;
+  margin-top: 32px;
+}
+
+/* Sieht aus wie ein Suchfeld, ist aber der Einstiegs-Button */
+.start-suchbtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0 12px;
+  height: 58px;
+  font: inherit;
+  text-align: left;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  /* Verlaufsrand: innen weiß (padding-box), Rand als Verlauf (border-box) */
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    linear-gradient(135deg, var(--blau-200), #c7d2fe) border-box;
+  box-shadow: var(--schatten);
+  cursor: pointer;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.2s var(--weich);
+}
+
+.start-suchbtn:hover {
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    var(--verlauf) border-box;
+  box-shadow: 0 10px 30px -12px rgba(37, 99, 235, 0.5);
+  transform: translateY(-2px);
+}
+
+.start-suchbtn:active {
+  transform: translateY(0);
+}
+
+.start-suchbtn:focus-visible {
+  outline: none;
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    var(--verlauf) border-box;
+  box-shadow: var(--ring), 0 10px 30px -12px rgba(37, 99, 235, 0.5);
+}
+
+/* Farbiges Kästchen um die Lupe */
+.such-chip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--verlauf);
+  box-shadow: 0 4px 10px -3px rgba(37, 99, 235, 0.55);
+  transition: transform 0.25s var(--weich);
+}
+
+.start-suchbtn:hover .such-chip {
+  transform: scale(1.06) rotate(-4deg);
+}
+
+.such-chip svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: var(--weiss);
+  stroke-width: 2.3;
+  stroke-linecap: round;
+}
+
+/* Zarter Lichtschimmer, der beim Hover einmal durchläuft */
+.start-suchbtn::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 50%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(37, 99, 235, 0.07),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s var(--weich);
+}
+
+.start-suchbtn:hover::after {
+  left: 110%;
+}
+
+.start-suchtext {
+  flex: 1;
+  font-size: 15px;
+  color: var(--grau-500);
+}
+
+.start-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 22px 0 0;
+  font-size: 13px;
+  color: var(--grau-500);
+}
+
+.start-meta-trenner {
+  color: var(--grau-300);
+}
+
+.start-zahl {
+  font-weight: 600;
+  color: var(--grau-900);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reservierter Bereich unten – hier kommt später die Tabelle rein */
+.start-tabellenplatz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  width: 100%;
+  min-height: 260px;
+  margin-top: 48px;
+  padding: 40px 24px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px dashed var(--grau-300);
+  border-radius: var(--radius);
+}
+
+.platzhalter-icon {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 10px;
+  fill: none;
+  stroke: var(--grau-300);
+  stroke-width: 1.5;
+}
+
+.platzhalter-titel {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--grau-500);
+}
+
+.platzhalter-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--grau-400);
+}
+
+/* ============================================================
+   Titel
+   ============================================================ */
+.sektion h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  background: var(--verlauf);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: verlauf-wandern 9s ease-in-out infinite alternate;
+}
+
+.untertitel {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--grau-500);
+}
+
+/* ============================================================
+   Kennzahlen
+   ============================================================ */
+.kennzahlen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.kennzahl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--weiss);
+  border: 1px solid var(--grau-200);
+  border-radius: var(--radius);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kennzahl:hover {
+  border-color: var(--blau-200);
+  box-shadow: var(--schatten);
+}
+
+.kennzahl-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grau-400);
+}
+
+.kennzahl-wert {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kennzahl-einheit {
+  margin-left: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--grau-400);
+}
+
+/* ============================================================
+   Tabelle
+   ============================================================ */
+.tabelle-karte {
+  background: var(--weiss);
+  border: 1px solid var(--grau-200);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  /* clip statt hidden – sonst funktioniert der klebende Tabellenkopf nicht */
+  overflow: clip;
+}
+
+.tabelle {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+/* Tabellenkopf bleibt beim Scrollen unter der Kopfzeile stehen */
+.tabelle thead th {
+  position: sticky;
+  top: calc(var(--kopfzeile-hoehe) - 1px);
+  z-index: 5;
+  padding: 0;
+  background: var(--grau-50);
+  border-bottom: 1px solid var(--grau-200);
+  text-align: left;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--grau-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.tabelle th.rechts .sort-btn {
+  justify-content: flex-end;
+}
+
+.sort-btn:hover:not(:disabled) {
+  color: var(--blau-600);
+}
+
+.sort-btn:hover:not(:disabled) .sort-pfeil {
+  opacity: 1;
+}
+
+.sort-btn--aktiv {
+  color: var(--blau-600);
+}
+
+.sort-btn:disabled {
+  cursor: default;
+}
+
+.sort-btn:focus-visible {
+  outline: none;
+  box-shadow: inset var(--ring);
+}
+
+.sort-pfeil {
+  font-size: 11px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.sort-btn--aktiv .sort-pfeil {
+  opacity: 1;
+}
+
+.tabelle tbody td {
+  padding: 12px 18px;
+  color: var(--grau-900);
+  border-bottom: 1px solid var(--grau-100);
+  transition: background 0.12s ease;
+}
+
+.tabelle tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabelle tbody tr:hover td {
+  background: var(--blau-50);
+}
+
+/* Feiner blauer Akzent links, wenn man über einer Zeile steht */
+.tabelle tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--blau-500);
+}
+
+.tabelle td.rechts {
+  text-align: right;
+}
+
+.zelle-name {
+  font-weight: 550;
+}
+
+.zeit {
+  color: var(--grau-500);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.leer {
+  color: var(--grau-300);
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--blau-700);
+  background: var(--blau-50);
+  border: 1px solid var(--blau-100);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tabelle mark {
+  padding: 1px 2px;
+  color: var(--blau-700);
+  background: var(--blau-100);
+  border-radius: 3px;
+}
+
+/* Messwert mit Mini-Balken: zeigt die Lage im gültigen Bereich */
+.messwert {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  cursor: help;
+}
+
+.messwert-zahl {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.messwert-balken {
+  width: 56px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--grau-100);
+  overflow: hidden;
+}
+
+.messwert-fuellung {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blau-400), var(--blau-600));
+  transition: width 0.4s var(--weich);
+}
+
+/* Ladezustand: schimmernde Platzhalter statt leerer Tabelle */
+.skelett {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--grau-100) 25%,
+    var(--grau-50) 50%,
+    var(--grau-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: schimmern 1.4s ease-in-out infinite;
+}
+
+.skelett-zeile:hover td {
+  background: transparent;
+}
+
+.skelett-zeile:hover td:first-child {
+  box-shadow: none;
+}
+
+.skelett-zeile td:nth-child(2) .skelett {
+  width: 60%;
+}
+.skelett-zeile td:nth-child(3) .skelett,
+.skelett-zeile td:nth-child(4) .skelett {
+  width: 45%;
+  margin-left: auto;
+}
+
+@keyframes schimmern {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Hinweise: Fehler, keine Treffer, keine Daten */
+.tabelle-hinweis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--grau-500);
+  border-top: 1px solid var(--grau-100);
+}
+
+.hinweis-icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+  fill: none;
+  stroke: var(--grau-300);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.hinweis-titel {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--grau-900);
+}
+
+.hinweis-text {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--grau-400);
+  max-width: 340px;
+}
+
+.tabelle-hinweis--fehler {
+  color: var(--rot-700);
+  background: #fef2f2;
+  border-top-color: #fecaca;
+  padding: 20px 24px;
+}
+
+/* ============================================================
+   Responsiv
+   ============================================================ */
+@media (max-width: 720px) {
+  .aktualisiert {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .inhalt {
+    padding: 24px 16px 56px;
+  }
+
+  .kopfzeile-inhalt {
+    padding: 0 16px;
+  }
+
+  .sektion h1 {
+    font-size: 24px;
+  }
+
+  .tabelle tbody td,
+  .sort-btn {
+    padding-inline: 12px;
+  }
+
+  .start-inhalt {
+    padding-top: 40px;
+  }
+
+  .start-titel {
+    font-size: 28px;
+  }
+
+  .start-untertitel {
+    font-size: 15px;
+  }
+
+  .start-tabellenplatz {
+    margin-top: 32px;
+    min-height: 200px;
+  }
+}
+
+/* ============================================================
+   Bewegung reduzieren
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .start-suchbtn:hover {
+    transform: none;
+  }
+}

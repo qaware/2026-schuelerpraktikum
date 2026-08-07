@@ -1,76 +1,235 @@
-import json
 import os
+from datetime import datetime
 
+from fastapi.middleware.cors import CORSMiddleware
 import motor.motor_asyncio
-import requests
-from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
-from starlette import status
-from starlette.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, status
+from pymongo.errors import PyMongoError
 
-from models import DataModel, UpdateDataModel
+from models import DataModel, GroupedDataModel, MeasurementModel
+
 
 app = FastAPI()
-os.environ["MONGODB_URL"] = "mongodb://root:password@localhost:27017/?retryWrites=true&w=majority"
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
-db = client.get_database("data")
 
-# TODO: Welche Daten müssen zur Verfügung gestellt werden?
-# TODO: Wie verhindern wir, dass beschädigte Daten in das System gelangen?
-# TODO: Wie melden wir Nutzern zurück, dass keine Sensordaten vorhanden sind?
-# TODO: Wie melden wir Nutzern, dass bereits ein entsprechendes Datenset existiert?
-# TODO: Was gehört zur Verwaltung der Daten noch?
-# TODO: Benötigen wir noch andere Schnittstellen für unsere Nutzer?
+MONGODB_URL = os.getenv(
+    "MONGODB_URL",
+    "mongodb://root:password@localhost:27017/"
+)
 
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
 
-@app.get("/hello_world", response_description="Hello World")
-def hello_world():
-    response = "Hello World"
-    return JSONResponse(status_code=status.HTTP_200_OK, content=response)
+db = client["data"]
 
+# Nur der jeweils neueste Messwert pro Sensor. Der alte Wert wird ueberschrieben.
+current_collection = db["data"]
 
-@app.post("/data/", response_description="Create Data", response_model=DataModel)
-async def create_data(data: DataModel):
-    new_data = await db["data"].insert_one(jsonable_encoder(data))
-    created_data = await db["data"].find_one({"_id": new_data.inserted_id})
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_data)
+# Komplette Historie: alle Messwerte pro Sensor.
+grouped_collection = db["data_wsi"]
 
 
-@app.get("/data/", response_description="List All Data", response_model=list[DataModel])
-async def list_data():
-    data = await db["data"].find().to_list(1000)
-    return JSONResponse(status_code=status.HTTP_200_OK, content=data)
+def JSON_Transformation(
+    data: DataModel
+) -> GroupedDataModel:
+    measurement = MeasurementModel(
+        time=data.time,
+        pressure=data.pressure,
+        temperature=data.temperature,
+    )
+
+    return GroupedDataModel(
+        type=data.type,
+        name=data.name,
+        measurements=[measurement],
+    )
 
 
-@app.get("/data/{id}", response_description="Read Data", response_model=DataModel)
-async def read_data(id: str):
-    data = await db["data"].find_one({"_id": id})
-    return JSONResponse(status_code=status.HTTP_200_OK, content=data)
+@app.post(
+    "/data/",
+    response_description="Receive and store data",
+    status_code=status.HTTP_201_CREATED,
+)
+async def receive_data(data: DataModel):
+    grouped_data = JSON_Transformation(data)
+
+    measurements = [
+        measurement.model_dump()
+        for measurement in grouped_data.measurements
+    ]
+
+    sensor_key = {
+        "type": grouped_data.type,
+        "name": grouped_data.name,
+    }
+
+    try:
+        # Historie: neue Messwerte hinten anhaengen, nichts loeschen.
+        await grouped_collection.update_one(
+            sensor_key,
+            {
+                "$push": {
+                    "measurements": {
+                        "$each": measurements
+                    }
+                },
+            },
+            upsert=True,
+        )
+
+        # Aktuelle Daten: den Messwert nur uebernehmen, wenn er neuer ist als
+        # der gespeicherte. Sonst wuerde ein verspaetet eintreffender, aelterer
+        # Messwert den aktuellen ueberschreiben.
+        await current_collection.update_one(
+            sensor_key,
+            [
+                {
+                    "$set": {
+                        "type": grouped_data.type,
+                        "name": grouped_data.name,
+                        "current": {
+                            "$cond": [
+                                {
+                                    "$gt": [
+                                        measurements[-1]["time"],
+                                        {"$ifNull": ["$current.time", datetime.min]},
+                                    ]
+                                },
+                                measurements[-1],
+                                "$current",
+                            ]
+                        },
+                    }
+                }
+            ],
+            upsert=True,
+        )
+    except PyMongoError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Datenbank nicht erreichbar: {error}",
+        )
+
+    return {
+        "message": "MRS Data received and stored successfully.",
+    }
 
 
-@app.put("/data/{id}", response_description="Update Data", response_model=DataModel)
-async def update_data(id: str, update: UpdateDataModel):
-    await db["data"].update_one({"_id": id}, {"$set": jsonable_encoder(update)})
-    updated_data = await db["data"].find_one({"_id": id})
+@app.get(
+    "/data/current",
+    response_model=dict[str, dict[str, MeasurementModel]],
+)
+async def get_current_data():
+    # Nur Dokumente lesen, die wirklich einen aktuellen Messwert haben.
+    mongo_data = await current_collection.find(
+        {"current": {"$exists": True}},
+        {
+            "_id": 0,
+            "type": 1,
+            "name": 1,
+            "current": 1,
+        },
+    ).to_list(length=1000)
 
-    return JSONResponse(status_code=status.HTTP_200_OK, content=updated_data)
+    if not mongo_data:
+        raise HTTPException(
+            status_code=404,
+            detail="Keine Sensordaten vorhanden.",
+        )
+
+    result = {}
+
+    for dataset in mongo_data:
+        data_type = dataset["type"]
+        name = dataset["name"]
+
+        result.setdefault(data_type, {})
+        result[data_type][name] = dataset["current"]
+
+    return result
 
 
-@app.delete("/data/{id}", response_description="Delete Data")
-async def delete_data(id: str):
-    await db["data"].delete_one({"_id": id})
-    return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+@app.get(
+    "/data_wsi/{name}",
+    response_model=dict[str, dict[str, list[MeasurementModel]]],
+)
+async def get_data_by_name(name: str):
+    # Die Messwerte stehen in der Reihenfolge im Array, in der sie eingetroffen
+    # sind. Sortiert nach Zeit ausliefern, damit ein Diagramm nicht zickzackt.
+    mongo_data = await grouped_collection.aggregate(
+        [
+            {"$match": {"name": name}},
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "name": 1,
+                    "measurements": {
+                        "$sortArray": {
+                            "input": "$measurements",
+                            "sortBy": {"time": 1},
+                        }
+                    },
+                }
+            },
+        ]
+    ).to_list(length=1000)
 
-if __name__ == '__main__':
-    data = DataModel(name="Test")
-    new_data = UpdateDataModel(name="Updated Test")
-    answer1 = requests.post("http://127.0.0.1:8000/data/", data.model_dump_json(),
-                             headers={"Content-Type": "application/json"})
-    answer2 = requests.put(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}", new_data.model_dump_json(),
-                             headers={"Content-Type": "application/json"})
-    answer3 = requests.delete(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}")
-    answer4 = requests.get(f"http://127.0.0.1:8000/data/{json.loads(answer1.content)['_id']}")
-    print(answer1.content)
-    print(answer2.content)
-    print(answer3.content)
-    print(answer4.content)
+    if not mongo_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Keine Sensordaten für '{name}' vorhanden.",
+        )
+
+    result = {}
+
+    for dataset in mongo_data:
+        data_type = dataset["type"]
+        sensor_name = dataset["name"]
+
+        result.setdefault(data_type, {})
+        result[data_type][sensor_name] = dataset.get("measurements", [])
+
+    return result
+
+
+
+@app.get(
+    "/data_wsi/",
+    response_model=dict[str, dict[str, list[MeasurementModel]]],
+)
+async def get_all_data():
+    # Die Messwerte stehen in der Reihenfolge im Array, in der sie eingetroffen
+    # sind. Sortiert nach Zeit ausliefern, damit ein Diagramm nicht zickzackt.
+    mongo_data = await grouped_collection.aggregate(
+        [
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "name": 1,
+                    "measurements": {
+                        "$sortArray": {
+                            "input": "$measurements",
+                            "sortBy": {"time": 1},
+                        }
+                    },
+                }
+            },
+        ]
+    ).to_list(length=1000)
+
+    if not mongo_data:
+        raise HTTPException(
+            status_code=404,
+            detail="Keine Sensordaten vorhanden.",
+        )
+
+    result = {}
+
+    for dataset in mongo_data:
+        data_type = dataset["type"]
+        sensor_name = dataset["name"]
+
+        result.setdefault(data_type, {})
+        result[data_type][sensor_name] = dataset.get("measurements", [])
+
+    return result

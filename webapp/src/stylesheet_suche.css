@@ -1,0 +1,159 @@
+/* ============================================================
+   Suche – schlicht, blau/weiß, im Seitenfluss statt schwebend
+   ============================================================ */
+.suche {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.suche-feld {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 320px;
+  padding: 0 10px;
+  height: 50px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  /* Verlaufsrand: innen weiß (padding-box), Rand als Verlauf (border-box) */
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    linear-gradient(135deg, var(--blau-200), #c7d2fe) border-box;
+  transition: box-shadow 0.2s ease;
+}
+
+.suche-feld:focus-within {
+  background:
+    linear-gradient(var(--weiss), var(--weiss)) padding-box,
+    var(--verlauf) border-box;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12),
+    0 8px 24px -12px rgba(37, 99, 235, 0.55);
+}
+
+/* Farbiges Kästchen um die Lupe – wie auf der Startseite */
+.suche-feld .such-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+.suche-feld .such-chip svg {
+  width: 15px;
+  height: 15px;
+}
+
+.suche-feld:focus-within .such-chip {
+  transform: scale(1.06) rotate(-4deg);
+}
+
+.suche-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  font: inherit;
+  font-size: 15px;
+  color: var(--grau-900);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.suche-input::placeholder {
+  color: var(--grau-400);
+}
+
+/* natives Kreuz von type="search" ausblenden – wir haben einen eigenen Button */
+.suche-input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.suche-clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.suche-clear svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--grau-400);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.suche-clear:hover {
+  background: var(--grau-100);
+}
+
+.suche-clear:hover svg {
+  stroke: var(--grau-900);
+}
+
+.suche-clear:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.suche-kbd {
+  flex: none;
+  padding: 4px 8px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blau-600);
+  background: var(--blau-50);
+  border: 1px solid var(--blau-100);
+  border-radius: 6px;
+}
+
+.suche-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--grau-500);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.suche-treffer {
+  font-weight: 600;
+  color: var(--blau-700);
+}
+
+/* Bedien-Tipp – bricht immer in eine eigene Zeile um */
+.suche-tipp {
+  flex-basis: 100%;
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--grau-400);
+}
+
+.suche-tipp code {
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--grau-500);
+  background: var(--grau-100);
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .suche-kbd {
+    display: none;
+  }
+
+  .suche-tipp {
+    display: none;
+  }
+}
