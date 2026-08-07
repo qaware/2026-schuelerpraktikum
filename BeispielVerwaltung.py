@@ -189,3 +189,47 @@ async def get_data_by_name(name: str):
         result[data_type][sensor_name] = dataset.get("measurements", [])
 
     return result
+
+
+
+@app.get(
+    "/data_wsi/",
+    response_model=dict[str, dict[str, list[MeasurementModel]]],
+)
+async def get_all_data():
+    # Die Messwerte stehen in der Reihenfolge im Array, in der sie eingetroffen
+    # sind. Sortiert nach Zeit ausliefern, damit ein Diagramm nicht zickzackt.
+    mongo_data = await grouped_collection.aggregate(
+        [
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "name": 1,
+                    "measurements": {
+                        "$sortArray": {
+                            "input": "$measurements",
+                            "sortBy": {"time": 1},
+                        }
+                    },
+                }
+            },
+        ]
+    ).to_list(length=1000)
+
+    if not mongo_data:
+        raise HTTPException(
+            status_code=404,
+            detail="Keine Sensordaten vorhanden.",
+        )
+
+    result = {}
+
+    for dataset in mongo_data:
+        data_type = dataset["type"]
+        sensor_name = dataset["name"]
+
+        result.setdefault(data_type, {})
+        result[data_type][sensor_name] = dataset.get("measurements", [])
+
+    return result
