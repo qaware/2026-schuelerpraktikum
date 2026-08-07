@@ -13,7 +13,8 @@ type api struct {
 	store  *store
 }
 type config struct {
-	addr string
+	addr       string
+	datagenURL string
 }
 
 func (api *api) mount() http.Handler {
@@ -35,6 +36,18 @@ func (api *api) mount() http.Handler {
 	r.Get("/satellites/{name}/log", api.listSatelliteLogsHandler)
 	r.Get("/satellites/{name}/sensors", api.listSensorsHandler)
 	r.Get("/satellites/{name}/sensors/{sensor_name}", api.listSensorLogsHandler)
+
+	// Health & Automated Integration Tests
+	r.Get("/health", api.healthHandler)
+	r.Get("/healthz", api.healthHandler)
+	r.Post("/health/tests/run", api.runTestsHandler)
+
+	// Admin Satellite Control Panel Routes
+	r.Get("/admin/status", api.adminStatusHandler)
+	r.Post("/admin/orbit", api.adminOrbitHandler)
+	r.Post("/admin/anomaly", api.adminAnomalyHandler)
+	r.Post("/admin/task", api.adminTaskHandler)
+	r.Post("/admin/reset", api.adminResetHandler)
 
 	return r
 }

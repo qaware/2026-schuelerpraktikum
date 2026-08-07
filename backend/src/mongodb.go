@@ -29,12 +29,13 @@ func startDB(ctx context.Context, uri string) (*mongo.Client, error) {
 }
 
 type store struct {
+	client     *mongo.Client
 	collection *mongo.Collection
 }
 
 func newStore(client *mongo.Client) *store {
 	collection := client.Database("pizza_party").Collection("satellite_data")
-	return &store{collection: collection}
+	return &store{client: client, collection: collection}
 }
 
 func (store *store) ensureIndexing(ctx context.Context) error {

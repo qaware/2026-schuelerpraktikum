@@ -20,6 +20,7 @@ services:
     environment:
       MONGO_URI: mongodb://root:password@mongodb:27017
       ADDR: ":8585"
+      DATAGEN_URL: http://datagen:8090
     ports:
       - 8585:8585
 
@@ -37,6 +38,8 @@ services:
       - backend
     environment:
       INGEST_URL: http://backend:8585/data
+    ports:
+      - 8090:8090
 
   frontend:
     build:

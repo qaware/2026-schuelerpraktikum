@@ -6,9 +6,8 @@ use crate::components::nav::Nav;
 use crate::components::home::Home;
 use crate::components::dashboard::Dashboard;
 use crate::components::satellite::Satellite;
-
-
-
+use crate::components::health::Health;
+use crate::components::admin::Admin;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -21,6 +20,8 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/") view=Home />
                     <Route path=path!("/dashboard") view=Dashboard />
                     <Route path=path!("/Satellite") view=Satellite />
+                    <Route path=path!("/health") view=Health />
+                    <Route path=path!("/admin") view=Admin />
                 </Routes>
             </main>
         </Router>

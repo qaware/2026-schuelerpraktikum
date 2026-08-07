@@ -8,6 +8,8 @@ pub fn Nav() -> impl IntoView {
             <a href="/"><button class="cursor-pointer p-2 rounded-3xl text-slate-300 hover:text-blue-400">"Home"</button></a>
             <a href="/dashboard"><button class="cursor-pointer p-2 rounded-3xl text-slate-300 hover:text-blue-400">"Dashboard"</button></a>
             <a href="/Satellite"><button class="cursor-pointer p-2 rounded-3xl text-slate-300 hover:text-blue-400">"Satellite"</button></a>
+            <a href="/health"><button class="cursor-pointer p-2 rounded-3xl text-slate-300 hover:text-blue-400">"System-Tests"</button></a>
+            <a href="/admin"><button class="cursor-pointer p-2 rounded-3xl text-slate-300 hover:text-blue-400">"Steuerung"</button></a>
         </nav>
     }
 }

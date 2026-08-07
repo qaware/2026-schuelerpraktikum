@@ -44,7 +44,8 @@ func main() {
 	}
 
 	cfg := config{
-		addr: env("ADDR", ":8585"),
+		addr:       env("ADDR", ":8585"),
+		datagenURL: env("DATAGEN_URL", "http://datagen:8090"),
 	}
 	api := api{
 		config: cfg,

@@ -156,6 +156,11 @@ class DataGenerator:
                 for sensor_name in sat_info["sensors"]
             }
 
+        # Dynamic state & control
+        self.height_offsets: dict[str, float] = {sat: 0.0 for sat in SATELLITES_DB}
+        self.anomalies: dict[str, dict[str, float]] = {}  # "sat/sensor" -> {"temp": float, "pressure": float}
+        self.active_tasks: dict[str, dict] = {}  # sat -> {"name": str, "end_time": float, "intensity": str}
+
     @staticmethod
     def get_next_interval(sensor_name: str) -> float:
         spec = SENSOR_SPECS.get(sensor_name, {})
@@ -178,8 +183,7 @@ class DataGenerator:
 
         return due
 
-    @staticmethod
-    def generate_measurement(sat_name: str, sensor_name: str, ts: float) -> Sensor:
+    def generate_measurement(self, sat_name: str, sensor_name: str, ts: float) -> Sensor:
         """Builds one noisy measurement for a sensor at a point in time."""
         spec = SENSOR_SPECS[sensor_name]
         sat_info = SATELLITES_DB[sat_name]
@@ -196,9 +200,31 @@ class DataGenerator:
         spike_p = random.choice([-1.2, 1.8]) if random.random() < 0.03 else 0.0
         spike_t = random.choice([-4.5, 5.2]) if random.random() < 0.03 else 0.0
 
-        pressure: float | None = max(0.1, round(spec["base_p"] + spec["amp_p"] * p_wave + noise_p + spike_p, 4))
-        temperature: float | None = max(0.0, round(spec["base_t"] + spec["amp_t"] * t_wave + noise_t + spike_t, 2))
-        height = max(100.0, round(sat_info["base_height"] + 15.0 * h_wave + noise_h, 4))
+        # Check compute tasks
+        task_heat = 0.0
+        task_pressure = 0.0
+        if sat_name in self.active_tasks:
+            task = self.active_tasks[sat_name]
+            if ts < task["end_time"]:
+                task_heat = 85.0 if task.get("intensity") == "high" else 40.0
+                task_pressure = 2.5
+            else:
+                del self.active_tasks[sat_name]
+
+        # Check anomalies
+        ano_key = f"{sat_name}/{sensor_name}"
+        ano_temp = 0.0
+        ano_press = 0.0
+        if ano_key in self.anomalies:
+            ano_temp = self.anomalies[ano_key].get("temp", 0.0)
+            ano_press = self.anomalies[ano_key].get("pressure", 0.0)
+
+        pressure: float | None = max(0.1, round(spec["base_p"] + spec["amp_p"] * p_wave + noise_p + spike_p + task_pressure + ano_press, 4))
+        temperature: float | None = max(0.0, round(spec["base_t"] + spec["amp_t"] * t_wave + noise_t + spike_t + task_heat + ano_temp, 2))
+
+        # Height with orbit offset
+        height_offset = self.height_offsets.get(sat_name, 0.0)
+        height = max(100.0, round(sat_info["base_height"] + height_offset + 15.0 * h_wave + noise_h, 4))
 
         city = CITIES[(int(ts / 300) + hash(sat_name)) % len(CITIES)]
 
@@ -250,13 +276,143 @@ class DataGenerator:
             json.dump(data.to_dict(), file, indent=4)
 
 
+# HTTP Control API for Datagen
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class ControlHandler(BaseHTTPRequestHandler):
+    generator: DataGenerator | None = None
+
+    def log_message(self, format, *args):
+        # Silence standard HTTP access logging to keep stdout clean
+        pass
+
+    def _send_json(self, status: int, data: dict):
+        body = json.dumps(data).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path == "/health":
+            self._send_json(200, {"status": "ok", "service": "datagen", "timestamp": time.time()})
+        elif self.path == "/status":
+            gen = ControlHandler.generator
+            now = time.time()
+            active_tasks = {}
+            if gen:
+                for sat, tinfo in gen.active_tasks.items():
+                    remaining = max(0, int(tinfo["end_time"] - now))
+                    if remaining > 0:
+                        active_tasks[sat] = {
+                            "name": tinfo["name"],
+                            "remaining_seconds": remaining,
+                            "intensity": tinfo.get("intensity", "medium")
+                        }
+            self._send_json(200, {
+                "status": "ok",
+                "height_offsets": gen.height_offsets if gen else {},
+                "anomalies": gen.anomalies if gen else {},
+                "active_tasks": active_tasks,
+                "satellites": list(SATELLITES_DB.keys())
+            })
+        else:
+            self._send_json(404, {"error": "Not Found"})
+
+    def do_POST(self):
+        gen = ControlHandler.generator
+        if not gen:
+            self._send_json(500, {"error": "Generator not initialized"})
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length) if content_length > 0 else b"{}"
+        try:
+            payload = json.loads(post_data.decode("utf-8"))
+        except Exception:
+            payload = {}
+
+        if self.path == "/satellites/orbit":
+            sat = payload.get("satellite", "ISS")
+            delta = float(payload.get("height_delta", 0.0))
+            if sat in SATELLITES_DB:
+                gen.height_offsets[sat] = round(gen.height_offsets.get(sat, 0.0) + delta, 2)
+                self._send_json(200, {"status": "success", "satellite": sat, "new_offset": gen.height_offsets[sat]})
+            else:
+                self._send_json(400, {"error": f"Unknown satellite {sat}"})
+
+        elif self.path == "/satellites/anomaly":
+            sat = payload.get("satellite", "ISS")
+            sensor = payload.get("sensor", "thruster_1.a")
+            ano_type = payload.get("type", "overheat")
+            val = float(payload.get("value", 150.0))
+
+            key = f"{sat}/{sensor}"
+            if ano_type == "clear":
+                if key in gen.anomalies:
+                    del gen.anomalies[key]
+                self._send_json(200, {"status": "cleared", "key": key})
+            elif ano_type == "overheat":
+                gen.anomalies[key] = {"temp": val, "pressure": 0.0}
+                self._send_json(200, {"status": "anomaly_set", "key": key, "temp_spike": val})
+            elif ano_type == "pressure_drop":
+                gen.anomalies[key] = {"temp": 0.0, "pressure": -val}
+                self._send_json(200, {"status": "anomaly_set", "key": key, "pressure_drop": val})
+            else:
+                self._send_json(400, {"error": "Invalid anomaly type"})
+
+        elif self.path == "/satellites/task":
+            sat = payload.get("satellite", "ISS")
+            task_name = payload.get("task_name", "Compute Orbit Matrix")
+            duration = float(payload.get("duration", 15.0))
+            intensity = payload.get("intensity", "high")
+
+            if sat in SATELLITES_DB:
+                end_time = time.time() + duration
+                gen.active_tasks[sat] = {"name": task_name, "end_time": end_time, "intensity": intensity}
+
+                # Burn CPU cycles in background thread to simulate heavy calculation
+                def burn_cpu():
+                    t_end = time.time() + duration
+                    while time.time() < t_end:
+                        _ = sum(i * i for i in range(100000))
+                        time.sleep(0.005)
+
+                threading.Thread(target=burn_cpu, daemon=True).start()
+                self._send_json(200, {"status": "task_started", "satellite": sat, "task": task_name, "duration": duration})
+            else:
+                self._send_json(400, {"error": f"Unknown satellite {sat}"})
+
+        elif self.path == "/satellites/reset":
+            gen.height_offsets = {s: 0.0 for s in SATELLITES_DB}
+            gen.anomalies = {}
+            gen.active_tasks = {}
+            self._send_json(200, {"status": "reset_complete"})
+
+        else:
+            self._send_json(404, {"error": "Endpoint not found"})
+
+
+def start_control_server(generator: DataGenerator, port: int = 8090):
+    ControlHandler.generator = generator
+    server = HTTPServer(("0.0.0.0", port), ControlHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"Datagen Control HTTP API listening on port {port}")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate satellite telemetry and push it to the backend.")
     parser.add_argument("--url", default=DEFAULT_INGEST_URL, help="Backend ingest endpoint.")
     parser.add_argument("--store-files", action="store_true", help="Also write every measurement to data/ as JSON.")
+    parser.add_argument("--control-port", type=int, default=8090, help="Control HTTP API port.")
     args = parser.parse_args()
 
     generator = DataGenerator()
+    start_control_server(generator, port=args.control_port)
+
     print(f"Pushing telemetry to {args.url}")
 
     while True:

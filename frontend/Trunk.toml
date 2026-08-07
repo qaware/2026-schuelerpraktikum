@@ -23,6 +23,12 @@ backend = "http://localhost:8585/satellites"
 [[proxy]]
 backend = "http://localhost:8585/data"
 
+[[proxy]]
+backend = "http://localhost:8585/health"
+
+[[proxy]]
+backend = "http://localhost:8585/admin"
+
 [[hooks]]
 stage = "pre_build"
 command = "npx"

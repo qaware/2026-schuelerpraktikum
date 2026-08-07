@@ -49,3 +49,34 @@ type SatelliteDetailResponse struct {
 	Sensors    []string `json:"sensors"`
 	Nation     string   `json:"nation"`
 }
+
+/* Health & Diagnostic Types */
+
+type ComponentHealth struct {
+	Status    string                 `json:"status"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	LatencyMs int64                  `json:"latency_ms"`
+}
+
+type SystemHealthResponse struct {
+	Status     string                     `json:"status"`
+	UptimeSec  int64                      `json:"uptime_sec"`
+	Timestamp  int64                      `json:"timestamp"`
+	Components map[string]ComponentHealth `json:"components"`
+}
+
+type TestStepResult struct {
+	Name      string `json:"name"`
+	Passed    bool   `json:"passed"`
+	Duration  int64  `json:"duration_ms"`
+	Message   string `json:"message"`
+}
+
+type TestSuiteResult struct {
+	Total      int              `json:"total"`
+	PassedCount int             `json:"passed_count"`
+	FailedCount int             `json:"failed_count"`
+	DurationMs int64            `json:"duration_ms"`
+	Steps      []TestStepResult `json:"steps"`
+}
+
